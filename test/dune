@@ -1,2 +1,2 @@
 (test
- (name ocamlc))
+ (name ocamllox2))

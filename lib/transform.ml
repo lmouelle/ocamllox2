@@ -21,11 +21,6 @@ type ast =
 | NotAst of ast
 | NegateAst of ast
 
-let eval s = 
-  match parse_with expression_parser s with
-  | Error errstr -> raise @@ Invalidastession errstr
-  | Ok _ -> failwith "todo"
-
 let rec transform_primary = function
 | Boolean b -> ValueAst (BoolValue b)
 | Number i -> ValueAst (NumberValue i)

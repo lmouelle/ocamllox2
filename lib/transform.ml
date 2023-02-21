@@ -1,7 +1,5 @@
 open Parser
 
-exception Invalidastession of string
-
 type value =
 | NumberValue of int
 | BoolValue of bool

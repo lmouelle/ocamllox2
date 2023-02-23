@@ -18,6 +18,9 @@ type ast =
 | LesserAst of ast * ast
 | NotAst of ast
 | NegateAst of ast
+| PrintStatementAst of ast
+| ExpressionStatementAst of ast
+| ProgramAst of ast list
 
 let rec transform_primary = function
 | Boolean b -> ValueAst (BoolValue b)
@@ -71,3 +74,9 @@ and transform_unary = function
 | BaseUnary primary -> transform_primary primary
 | Not unary -> NotAst (transform_unary unary)
 | Negate unary -> NegateAst (transform_unary unary)
+
+and transform_statement = function
+| PrintStatement expr -> PrintStatementAst (transform_expression expr)
+| ExpressionStatement expr -> ExpressionStatementAst (transform_expression expr)
+
+and transform_program prog = ProgramAst (List.map transform_statement prog)

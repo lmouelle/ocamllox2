@@ -26,6 +26,8 @@ and comparison = BaseComparison of term | Greater of comparison * comparison | L
 and term = BaseTerm of factor | Minus of term * term | Plus of term * term
 and factor = BaseFactor of unary | Divide of factor * factor | Multiply of factor * factor
 and unary = BaseUnary of primary | Negate of unary | Not of unary
+and statement = PrintStatement of expression | ExpressionStatement of expression
+and program = statement list
 
 type dispatch_table = {
   primary : dispatch_table -> primary t;
@@ -35,6 +37,8 @@ type dispatch_table = {
   term : dispatch_table -> term t;
   factor : dispatch_table -> factor t;
   unary : dispatch_table -> unary t;
+  statment : dispatch_table -> statement t;
+  program : dispatch_table -> program t
 }
 
 let primary_parser_inner dt = 
@@ -93,6 +97,13 @@ let equality_parser_inner dt =
 let expression_parser_inner dt = 
   dt.equality dt >>= fun e -> return @@ BaseExpression e
 
+let statement_parser_inner dt =
+  let print_parser = string "print" *> dt.expression dt >>= fun expr -> char ';' *> (return @@ PrintStatement expr) in
+  let expr_stmt_parser = dt.expression dt >>= fun expr -> char ';' *> (return @@ ExpressionStatement expr) in
+  expr_stmt_parser <|> print_parser
+
+let program_parser_inner dt = many (dt.statment dt)
+
 let dt = {
   primary = primary_parser_inner; 
   expression = expression_parser_inner;
@@ -100,7 +111,9 @@ let dt = {
   comparison = comparison_parser_inner;
   term = term_parser_inner;
   factor = factor_parser_inner;
-  unary = unary_parser_inner
+  unary = unary_parser_inner;
+  statment = statement_parser_inner;
+  program = program_parser_inner;
 }
 
 let primary_parser = dt.primary dt
@@ -116,3 +129,7 @@ let term_parser = dt.term dt
 let factor_parser = dt.factor dt
 
 let unary_parser = dt.unary dt
+
+let statement_parser = dt.statment dt
+
+let program_parser = dt.program dt

@@ -4,10 +4,11 @@ let rec main env =
   try
     print_string "> ";
     let ln = read_line () in
-    let value = eval ln |> value_to_string in
-    print_string value;
+    let result = eval ln in
+    value_to_string result.value |> print_string;
     print_newline ();
-    main env
+    let env' = env @ result.env in
+    main env'
   with
   | End_of_file -> exit(0)
   | InvalidExpression msg -> print_string msg; main env

@@ -1,3 +1,7 @@
+(menhir
+ (modules parser))
+
+(ocamllex lexer)
+
 (library
- (name ocamllox2)
- (libraries angstrom))
+ (name ocamllox2))

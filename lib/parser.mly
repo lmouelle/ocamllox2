@@ -45,12 +45,12 @@ expr:
 | expr OR expr { Or ($1,$3) }
 | expr AND expr { And ($1,$3) }
 | VAR ident = IDENTIFIER EQUAL e = expr { Assignment(ident, e) }
-| expr EQUAL_EQUAL expr { Equality($1, $3, (=)) }
-| expr BANG_EQUAL expr { Equality($1, $3, (<>)) }
-| expr GREATER expr { Comparison($1, $3, (>)) }
-| expr GREATER_EQUAL expr { Comparison($1, $3, (>=)) }
-| expr LESS expr { Comparison($1, $3, (<)) }
-| expr LESS_EQUAL expr { Comparison($1, $3, (<=)) }
+| expr EQUAL_EQUAL expr { Equals($1, $3) }
+| expr BANG_EQUAL expr { NotEquals($1, $3) }
+| expr GREATER expr { Greater($1, $3) }
+| expr GREATER_EQUAL expr { GreaterEqual($1, $3) }
+| expr LESS expr { Less($1, $3) }
+| expr LESS_EQUAL expr { LessEqual($1, $3) }
 
 exprs:
 | (* empty *) { [] }

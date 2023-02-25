@@ -13,7 +13,7 @@
 
 let newline = '\r' | '\n' | "\r\n"
 let whitespace = [' ' '\t']+
-let digit = ['0'-'9']+ 
+let digit = '-'? ['0'-'9']+ 
 let identifier = ['a'-'z' 'A'-'Z']+
 let string = '"' [^ '"']* '"'
 

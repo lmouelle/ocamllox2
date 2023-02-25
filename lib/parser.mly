@@ -13,10 +13,11 @@
 %token LESS LESS_EQUAL AND CLASS ELSE FUN FOR 
 %token IF NIL OR PRINT RETURN SUPER THIS VAR WHILE EOF
 %token COMMENT_START COMMENT_END
-%start expr
+%start program
 
 %type <Ast.value> value
 %type <Ast.expr> expr
+%type <Ast.expr list> program
 
 %%
 
@@ -44,3 +45,10 @@ expr:
 | expr GREATER_EQUAL expr { Comparison($1, $3, (>=)) }
 | expr LESS expr { Comparison($1, $3, (<)) }
 | expr LESS_EQUAL expr { Comparison($1, $3, (<=)) }
+
+exprs:
+| (* empty *) { [] }
+| expr SEMICOLON exprs { $1 :: $2 }
+
+program:
+| exprs EOF { $1 }

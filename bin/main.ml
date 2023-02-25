@@ -6,7 +6,7 @@ let rec main env =
     Printf.printf "> ";
     let ln = read_line () in
     let prog = parse_string ln in
-    let results = List.rev_map eval prog in
+    let results = List.rev_map (eval env) prog in
     match results with 
     | [] -> main env
     | result :: _ ->

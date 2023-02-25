@@ -14,5 +14,8 @@ type expr =
 | Multiply of expr * expr 
 | Or of expr * expr
 | And  of expr * expr
-(* Instead of seperate rules for equals, lesser, greater, just one to cover them all*)
+(* Instead of seperate rules for lesser, greater, etc just one to cover them all*)
 | Comparison : expr * expr * ('a -> 'a -> bool) -> expr
+| Assignment of string * expr
+(* Need equality seperate from comparison because equality works on both nums and bools, but comparison only on nums*)
+| Equality : expr * expr * ('a -> 'a -> bool) -> expr

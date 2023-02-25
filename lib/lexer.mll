@@ -45,6 +45,7 @@ rule token = parse
 | "false" {FALSE}
 | "if" {IF}
 | "nil" {NIL}
+| "var" {VAR}
 | digit as lxm { NUMBER(float_of_string lxm) }
 | identifier as lxm { IDENTIFIER(lxm) }
 | string as lxm { STRING(Scanf.unescaped(String.sub lxm 1 ((String.length lxm) - 2)))  }

@@ -21,6 +21,8 @@
 
 %left PLUS MINUS 
 %left STAR SLASH
+%left AND OR
+%left EQUAL EQUAL_EQUAL BANG_EQUAL GREATER GREATER_EQUAL LESS LESS_EQUAL
 
 %%
 
@@ -42,8 +44,9 @@ expr:
 | expr STAR expr { Multiply ($1,$3) }
 | expr OR expr { Or ($1,$3) }
 | expr AND expr { And ($1,$3) }
-| expr EQUAL_EQUAL expr { Comparison($1, $3, (=)) }
-| expr BANG_EQUAL expr { Comparison($1, $3, (<>)) }
+| VAR ident = IDENTIFIER EQUAL e = expr { Assignment(ident, e) }
+| expr EQUAL_EQUAL expr { Equality($1, $3, (=)) }
+| expr BANG_EQUAL expr { Equality($1, $3, (<>)) }
 | expr GREATER expr { Comparison($1, $3, (>)) }
 | expr GREATER_EQUAL expr { Comparison($1, $3, (>=)) }
 | expr LESS expr { Comparison($1, $3, (<)) }

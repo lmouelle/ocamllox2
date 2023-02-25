@@ -51,6 +51,7 @@ expr:
 
 exprs:
 | (* empty *) { [] }
+| expr { [$1] }
 | expr SEMICOLON exprs { $1 :: $3 }
 
 program:

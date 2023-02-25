@@ -20,7 +20,9 @@ let rec eval (env : (string * value) list) (expr : expr) =
     let rhs_result = eval env rhs in
     match lhs_result.res, rhs_result.res with
     | Number n1, Number n2 -> { res = Number (f n1 n2); new_env = env}
-    | _ -> raise @@ EvalError "Invalid operands for numeric binary operation"
+    | Nil, _ | Variable _, _ | String _, _ | Boolean _, _ 
+    | _, Nil | _, Variable _ | _, String _ | _, Boolean _ -> 
+      raise @@ EvalError "Invalid operands for numeric binary operation"
   in
   let comparison_check lhs rhs f =
     let rec comparison_check' lhs_value rhs_value f =
@@ -75,10 +77,16 @@ let rec eval (env : (string * value) list) (expr : expr) =
     let lhs_result = eval env lhs in
     begin 
       match lhs_result.res with
+      | Nil | Variable _ | Number _ | String _ -> raise @@ EvalError "Invalid operands for boolean or"
       | Boolean true -> { res = Boolean true; new_env = env }
-      | Boolean false -> eval env rhs
-      (* TODO list all patterns *)
-      | _ -> raise @@ EvalError "Invalid operands for boolean or"
+      | Boolean false -> 
+        begin
+          let rhs_result = eval env rhs in
+          match rhs_result.res with
+          | Boolean true -> { res = Boolean true; new_env = env }
+          | Boolean false -> { res = Boolean false; new_env = env }
+          | Nil | Variable _ | Number _ | String _ -> raise @@ EvalError "Invalid operands for boolean or"
+        end
     end
   | And (lhs, rhs) ->
     let rhs_result = eval env rhs in
@@ -86,8 +94,7 @@ let rec eval (env : (string * value) list) (expr : expr) =
     begin
       match rhs_result.res, lhs_result.res with
       | Boolean b1, Boolean b2 -> { res = Boolean (Bool.(&&) b1 b2); new_env = env}
-      (* TODO list all patterns *)
-      | _, _ -> raise @@ EvalError "Invalid operands for boolean and"
+      | _ -> raise @@ EvalError "Invalid operands for boolean and"
     end
   | Assignment (name, expr) ->
     let expr_result = eval env expr in

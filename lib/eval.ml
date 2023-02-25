@@ -1,6 +1,7 @@
 open Ast
 
 exception EvalError of string
+exception NoSuchVarError of string
 
 type eval_result = { res : value; new_env : (string * value) list }
 
@@ -11,7 +12,7 @@ let value_to_string = function
   | Nil -> "nil"
 
 let rec eval (env : (string * value) list) (expr : expr) =
-  let number_binary_op_check lhs rhs f =
+  let eval_numeric_operator lhs rhs f =
     (* Note: this impl prevents us from using + for string concat. Do we want that? *)
     let lhs_result = eval env lhs in
     let rhs_result = eval env rhs in
@@ -27,7 +28,7 @@ let rec eval (env : (string * value) list) (expr : expr) =
     | _, Boolean _ ->
         raise @@ EvalError "Invalid operands for numeric binary operation"
   in
-  let comparison_check lhs rhs f =
+  let eval_comparison lhs rhs f =
     let rec comparison_check' lhs_value rhs_value f =
       match (lhs_value, rhs_value) with
       | Number n, Number n1 -> f n n1
@@ -45,7 +46,7 @@ let rec eval (env : (string * value) list) (expr : expr) =
     let rhs_result = eval env rhs in
     comparison_check' lhs_result.res rhs_result.res f
   in
-  let equality_check lhs rhs =
+  let eval_equality lhs rhs =
     let rec equality_check' lhs_value rhs_value =
       match (lhs_value, rhs_value) with
       | Number n1, Number n2 -> n1 = n2
@@ -77,8 +78,22 @@ let rec eval (env : (string * value) list) (expr : expr) =
     let rhs_result = eval env rhs in
     equality_check' lhs_result.res rhs_result.res
   in
+  let rec eval_value = function
+  | Number n -> { res = Number n; new_env = env }
+  | Boolean b -> { res = Boolean b; new_env = env }
+  | Nil -> { res = Nil; new_env = env }
+  | String s -> { res = String s; new_env = env }
+  | Variable v -> 
+    begin
+        match (List.assoc_opt v env) with
+        | None -> raise @@ NoSuchVarError ("No var defined with name " ^ v)
+        | Some Variable v -> eval_value (Variable v)
+        | Some value -> {res = value; new_env = env }
+    end
+  in
+
   match expr with
-  | Value v -> { res = v; new_env = env }
+  | Value v -> eval_value v
   | If (cond, iftrue, iffalse) -> (
       let result = eval env cond in
       match result.res with
@@ -86,10 +101,10 @@ let rec eval (env : (string * value) list) (expr : expr) =
       | Boolean false -> eval env iffalse
       | Number _ | String _ | Nil | Variable _ ->
           raise @@ EvalError "Invalid condition type for if expr")
-  | Plus (lhs, rhs) -> number_binary_op_check lhs rhs Float.add
-  | Multiply (lhs, rhs) -> number_binary_op_check lhs rhs Float.mul
-  | Subtract (lhs, rhs) -> number_binary_op_check lhs rhs Float.sub
-  | Divide (lhs, rhs) -> number_binary_op_check lhs rhs Float.div
+  | Plus (lhs, rhs) -> eval_numeric_operator lhs rhs Float.add
+  | Multiply (lhs, rhs) -> eval_numeric_operator lhs rhs Float.mul
+  | Subtract (lhs, rhs) -> eval_numeric_operator lhs rhs Float.sub
+  | Divide (lhs, rhs) -> eval_numeric_operator lhs rhs Float.div
   | Or (lhs, rhs) -> (
       let lhs_result = eval env lhs in
       match lhs_result.res with
@@ -115,17 +130,17 @@ let rec eval (env : (string * value) list) (expr : expr) =
       let new_env = (name, expr_result.res) :: env in
       { res = expr_result.res; new_env }
   | Equals (lhs, rhs) ->
-      { res = Boolean (equality_check lhs rhs); new_env = env }
+      { res = Boolean (eval_equality lhs rhs); new_env = env }
   | NotEquals (lhs, rhs) ->
-      { res = Boolean (not @@ equality_check lhs rhs); new_env = env }
+      { res = Boolean (not @@ eval_equality lhs rhs); new_env = env }
   | Less (lhs, rhs) ->
-      { res = Boolean (comparison_check lhs rhs ( < )); new_env = env }
+      { res = Boolean (eval_comparison lhs rhs ( < )); new_env = env }
   | LessEqual (lhs, rhs) ->
-      { res = Boolean (comparison_check lhs rhs ( <= )); new_env = env }
+      { res = Boolean (eval_comparison lhs rhs ( <= )); new_env = env }
   | Greater (lhs, rhs) ->
-      { res = Boolean (comparison_check lhs rhs ( > )); new_env = env }
+      { res = Boolean (eval_comparison lhs rhs ( > )); new_env = env }
   | GreaterEqual (lhs, rhs) ->
-      { res = Boolean (comparison_check lhs rhs ( >= )); new_env = env }
+      { res = Boolean (eval_comparison lhs rhs ( >= )); new_env = env }
 
 let rec eval_program env exprs =
   match exprs with

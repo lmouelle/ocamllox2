@@ -7,6 +7,12 @@ type eval_result = {
   new_env : (string * value) list;
 }
 
+let value_to_string = function
+| Boolean b -> string_of_bool b
+| Variable s | String s -> s
+| Number n -> string_of_float n
+| Nil -> "nil"
+
 let rec eval = function
 | Value v -> {res = v; new_env = []}
 | If(cond, iftrue, iffalse) ->
@@ -27,14 +33,14 @@ let rec eval = function
     raise @@ EvalError "Invalid operands for addition"
   end
 | Multiply (lhs, rhs) ->
-let lhs_result = eval lhs in
-let rhs_result = eval rhs in
-begin
-match lhs_result.res, rhs_result.res with
-| Number n1, Number n2 -> {res = Number (Float.mul n1 n2); new_env = []}
-| _, _ -> (* TODO  instead of wildcard case match list all possible matches for better type safety *)
-raise @@ EvalError "Invalid operands for multiplication"
-end
+  let lhs_result = eval lhs in
+  let rhs_result = eval rhs in
+  begin
+    match lhs_result.res, rhs_result.res with
+    | Number n1, Number n2 -> {res = Number (Float.mul n1 n2); new_env = []}
+    | _, _ -> (* TODO  instead of wildcard case match list all possible matches for better type safety *)
+    raise @@ EvalError "Invalid operands for multiplication"
+  end
 | Subtract (lhs, rhs) ->
 let lhs_result = eval lhs in
 let rhs_result = eval rhs in

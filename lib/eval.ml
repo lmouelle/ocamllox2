@@ -7,7 +7,8 @@ type eval_result = { res : value; new_env : (string * value) list }
 
 let value_to_string = function
   | Boolean b -> string_of_bool b
-  | Variable s | String s -> s
+  | Variable s -> "$" ^ s
+  | String s -> "\"" ^ s ^ "\""
   | Number n -> string_of_float n
   | Nil -> "nil"
 

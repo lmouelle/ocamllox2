@@ -1,6 +1,5 @@
 open Ocamllox2.Parse_utils
 open Ocamllox2.Eval
-open Ocamllox2.Ast
 
 let rec repl env =
   try

@@ -1,2 +1,3 @@
-(test
- (name ocamllox2))
+(tests 
+ (libraries ocamllox2 ounit2)
+ (names parser_test eval_test))

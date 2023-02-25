@@ -126,3 +126,11 @@ let rec eval (env : (string * value) list) (expr : expr) =
       { res = Boolean (comparison_check lhs rhs ( > )); new_env = env }
   | GreaterEqual (lhs, rhs) ->
       { res = Boolean (comparison_check lhs rhs ( >= )); new_env = env }
+
+let rec eval_program env exprs =
+  match exprs with
+  | [] -> { res = Nil; new_env = [] }
+  | single :: [] -> eval env single
+  | first :: rest ->
+      let { res = _; new_env } = eval env first in
+      eval_program new_env rest

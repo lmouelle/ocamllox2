@@ -7,13 +7,17 @@ let rec main env =
     let ln = read_line () in
     let prog = parse_string ln in
     let results = List.rev_map (eval env) prog in
-    match results with 
+    match results with
     | [] -> main env
     | result :: _ ->
-      value_to_string result.res |> print_string;
-      main result.new_env
+        value_to_string result.res |> print_string;
+        main result.new_env
   with
-  | End_of_file -> exit 0;
-  | EvalError msg -> Printf.printf "%s" msg; main env
+  | End_of_file -> exit 0
+  | EvalError msg ->
+      Printf.printf "%s" msg;
+      main env
 
-let () = print_newline (); main []
+let () =
+  print_newline ();
+  main []

@@ -2,8 +2,10 @@ open OUnit2
 open Ocamllox2.Eval
 open Ocamllox2.Ast
 
+let test_location = Lexing.({pos_cnum = 0; pos_lnum = 0; pos_fname = "test"; pos_bol = 0})
+
 let test_eval_numeric_constant _ =
-  assert_equal { res = Number 0.0; new_env = [] } (eval [] (Value (Number 0.0)))
+  assert_equal { res = Number 0.0; new_env = [] } (eval [] (Value (test_location, Number 0.0)))
 
 let test_value_to_string _ =
   assert_equal "0." (value_to_string (Number 0.));

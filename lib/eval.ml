@@ -1,7 +1,6 @@
 open Ast
 
-exception EvalError of string
-exception NoSuchVarError of string
+exception EvalError of string * location
 
 type eval_result = { res : value; new_env : (string * value) list }
 
@@ -13,8 +12,8 @@ let value_to_string = function
   | Nil -> "nil"
 
 let rec eval (env : (string * value) list) (expr : expr) =
-  let eval_numeric_operator lhs rhs f =
-    (* Note: this impl prevents us from using + for string concat. Do we want that? *)
+  let eval_numeric_operator loc lhs rhs f =
+    (* TODO: this impl prevents us from using + for string concat. Do we want that? *)
     let lhs_result = eval env lhs in
     let rhs_result = eval env rhs in
     match (lhs_result.res, rhs_result.res) with
@@ -27,90 +26,87 @@ let rec eval (env : (string * value) list) (expr : expr) =
     | _, Variable _
     | _, String _
     | _, Boolean _ ->
-        raise @@ EvalError "Invalid operands for numeric binary operation"
+        raise @@ EvalError ("Invalid operands for numeric binary operation", loc)
   in
-  let eval_comparison lhs rhs f =
-    let rec comparison_check' lhs_value rhs_value f =
+  let eval_comparison loc lhs rhs f =
+    let rec eval_comparison' lhs_value rhs_value f =
       match (lhs_value, rhs_value) with
       | Number n, Number n1 -> f n n1
       | Variable v, Number n | Number n, Variable v ->
-          comparison_check' (List.assoc v env) (Number n) f
+          eval_comparison' (List.assoc v env) (Number n) f
       | Variable v1, Variable v2 ->
-          comparison_check' (List.assoc v1 env) (List.assoc v2 env) f
+          eval_comparison' (List.assoc v1 env) (List.assoc v2 env) f
       | _ ->
           raise
           @@ EvalError
-               "Invalid operands for comparison check, only numeric values are \
-                valid"
+               ("Only numeric values are valid operands for comparison", loc)
     in
     let lhs_result = eval env lhs in
     let rhs_result = eval env rhs in
-    comparison_check' lhs_result.res rhs_result.res f
+    eval_comparison' lhs_result.res rhs_result.res f
   in
-  let eval_equality lhs rhs =
-    let rec equality_check' lhs_value rhs_value =
+  let eval_equality loc lhs rhs =
+    let rec eval_equality' lhs_value rhs_value =
       match (lhs_value, rhs_value) with
       | Number n1, Number n2 -> n1 = n2
       | Boolean n1, Boolean n2 -> n1 = n2
       | String n1, String n2 -> n1 = n2
       | Nil, Nil -> true
       | Variable v1, Variable v2 ->
-          equality_check' (List.assoc v1 env) (List.assoc v2 env)
-      | (_ as value), Variable v -> equality_check' (List.assoc v env) value
-      | Variable v, Number n -> equality_check' (List.assoc v env) (Number n)
-      | Variable v, String s -> equality_check' (List.assoc v env) (String s)
-      | Variable v, Nil -> equality_check' (List.assoc v env) Nil
-      | Variable v, Boolean b -> equality_check' (List.assoc v env) (Boolean b)
+          eval_equality' (List.assoc v1 env) (List.assoc v2 env)
+      | (_ as value), Variable v -> eval_equality' (List.assoc v env) value
+      | Variable v, Number n -> eval_equality' (List.assoc v env) (Number n)
+      | Variable v, String s -> eval_equality' (List.assoc v env) (String s)
+      | Variable v, Nil -> eval_equality' (List.assoc v env) Nil
+      | Variable v, Boolean b -> eval_equality' (List.assoc v env) (Boolean b)
       | Nil, Number _
       | Nil, Boolean _
       | Nil, String _
       | Number _, Nil
       | Boolean _, Nil
       | String _, Nil ->
-          raise @@ EvalError "Cannot compare value to nil"
+          raise @@ EvalError ("Cannot compare value to nil", loc)
       | Number _, Boolean _ | Boolean _, Number _ ->
-          raise @@ EvalError "Cannot compare number to bool"
+          raise @@ EvalError ("Cannot compare number to bool", loc)
       | String _, Number _ | Number _, String _ ->
-          raise @@ EvalError "Cannot compare number to string"
+          raise @@ EvalError ("Cannot compare number to string", loc)
       | Boolean _, String _ | String _, Boolean _ ->
-          raise @@ EvalError "Cannot compare string to bool"
+          raise @@ EvalError ("Cannot compare string to bool", loc)
     in
     let lhs_result = eval env lhs in
     let rhs_result = eval env rhs in
-    equality_check' lhs_result.res rhs_result.res
+    eval_equality' lhs_result.res rhs_result.res
   in
-  let rec eval_value = function
-  | Number n -> { res = Number n; new_env = env }
-  | Boolean b -> { res = Boolean b; new_env = env }
-  | Nil -> { res = Nil; new_env = env }
-  | String s -> { res = String s; new_env = env }
-  | Variable v -> 
-    begin
-        match (List.assoc_opt v env) with
-        | None -> raise @@ NoSuchVarError ("No var defined with name " ^ v)
-        | Some Variable v -> eval_value (Variable v)
-        | Some value -> {res = value; new_env = env }
-    end
+  let rec eval_value loc = function
+    | Number n -> { res = Number n; new_env = env }
+    | Boolean b -> { res = Boolean b; new_env = env }
+    | Nil -> { res = Nil; new_env = env }
+    | String s -> { res = String s; new_env = env }
+    | Variable v -> (
+        match List.assoc_opt v env with
+        | None -> raise @@ EvalError ("No var defined with name " ^ v, loc)
+        | Some (Variable v) -> eval_value loc (Variable v)
+        | Some value -> { res = value; new_env = env })
   in
 
   match expr with
-  | Value v -> eval_value v
-  | If (cond, iftrue, iffalse) -> (
+  | Value (loc, v) -> eval_value loc v
+  | If (loc, cond, iftrue, iffalse) -> (
       let result = eval env cond in
       match result.res with
       | Boolean true -> eval env iftrue
       | Boolean false -> eval env iffalse
       | Number _ | String _ | Nil | Variable _ ->
-          raise @@ EvalError "Invalid condition type for if expr")
-  | Plus (lhs, rhs) -> eval_numeric_operator lhs rhs Float.add
-  | Multiply (lhs, rhs) -> eval_numeric_operator lhs rhs Float.mul
-  | Subtract (lhs, rhs) -> eval_numeric_operator lhs rhs Float.sub
-  | Divide (lhs, rhs) -> eval_numeric_operator lhs rhs Float.div
-  | Or (lhs, rhs) -> (
+          raise @@ EvalError ("Invalid condition type for if expr", loc))
+  | Plus (loc, lhs, rhs) -> eval_numeric_operator loc lhs rhs Float.add
+  | Multiply (loc, lhs, rhs) -> eval_numeric_operator loc lhs rhs Float.mul
+  | Subtract (loc, lhs, rhs) -> eval_numeric_operator loc lhs rhs Float.sub
+  | Divide (loc, lhs, rhs) -> eval_numeric_operator loc lhs rhs Float.div
+  | Or (loc, lhs, rhs) -> (
       let lhs_result = eval env lhs in
       match lhs_result.res with
       | Nil | Variable _ | Number _ | String _ ->
-          raise @@ EvalError "Invalid operands for boolean or"
+          raise @@ EvalError ("Invalid operands for boolean or", loc)
       | Boolean true -> { res = Boolean true; new_env = env }
       | Boolean false -> (
           let rhs_result = eval env rhs in
@@ -118,30 +114,31 @@ let rec eval (env : (string * value) list) (expr : expr) =
           | Boolean true -> { res = Boolean true; new_env = env }
           | Boolean false -> { res = Boolean false; new_env = env }
           | Nil | Variable _ | Number _ | String _ ->
-              raise @@ EvalError "Invalid operands for boolean or"))
-  | And (lhs, rhs) -> (
+              raise @@ EvalError ("Invalid operands for boolean or", loc)))
+  | And (loc, lhs, rhs) -> (
       let rhs_result = eval env rhs in
       let lhs_result = eval env lhs in
       match (rhs_result.res, lhs_result.res) with
       | Boolean b1, Boolean b2 ->
           { res = Boolean (Bool.( && ) b1 b2); new_env = env }
-      | _ -> raise @@ EvalError "Invalid operands for boolean and")
-  | Assignment (name, expr) ->
+      | _ -> raise @@ EvalError ("Invalid operands for boolean and", loc))
+  | Assignment (_, name, expr) ->
+      (* TODO: Should I support variable shadowing or error out if I try to define the same var twice? *)
       let expr_result = eval env expr in
       let new_env = (name, expr_result.res) :: env in
       { res = expr_result.res; new_env }
-  | Equals (lhs, rhs) ->
-      { res = Boolean (eval_equality lhs rhs); new_env = env }
-  | NotEquals (lhs, rhs) ->
-      { res = Boolean (not @@ eval_equality lhs rhs); new_env = env }
-  | Less (lhs, rhs) ->
-      { res = Boolean (eval_comparison lhs rhs ( < )); new_env = env }
-  | LessEqual (lhs, rhs) ->
-      { res = Boolean (eval_comparison lhs rhs ( <= )); new_env = env }
-  | Greater (lhs, rhs) ->
-      { res = Boolean (eval_comparison lhs rhs ( > )); new_env = env }
-  | GreaterEqual (lhs, rhs) ->
-      { res = Boolean (eval_comparison lhs rhs ( >= )); new_env = env }
+  | Equals (loc, lhs, rhs) ->
+      { res = Boolean (eval_equality loc lhs rhs); new_env = env }
+  | NotEquals (loc, lhs, rhs) ->
+      { res = Boolean (not @@ eval_equality loc lhs rhs); new_env = env }
+  | Less (loc, lhs, rhs) ->
+      { res = Boolean (eval_comparison loc lhs rhs ( < )); new_env = env }
+  | LessEqual (loc, lhs, rhs) ->
+      { res = Boolean (eval_comparison loc lhs rhs ( <= )); new_env = env }
+  | Greater (loc, lhs, rhs) ->
+      { res = Boolean (eval_comparison loc lhs rhs ( > )); new_env = env }
+  | GreaterEqual (loc, lhs, rhs) ->
+      { res = Boolean (eval_comparison loc lhs rhs ( >= )); new_env = env }
 
 let rec eval_program env exprs =
   match exprs with

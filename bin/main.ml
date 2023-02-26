@@ -12,8 +12,8 @@ let rec repl env =
     repl new_env
   with
   | End_of_file -> exit 0
-  | EvalError msg ->
-      Printf.printf "%s" msg;
+  | EvalError (msg, loc) ->
+      Printf.printf "Error %s at line %d column %d" msg loc.pos_lnum loc.pos_cnum;
       repl env
 
 let () =

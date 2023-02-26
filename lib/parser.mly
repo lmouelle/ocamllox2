@@ -35,22 +35,22 @@ value:
 | i = IDENTIFIER { Variable i }
 
 expr:
-| v = value { Value v }
+| v = value { Value ($startpos, v) }
 | IF LEFT_PAREN expr RIGHT_PAREN LEFT_BRACE expr RIGHT_BRACE LEFT_BRACE expr RIGHT_BRACE
-  { If ($3,$6,$9) }
-| expr PLUS expr { Plus ($1,$3) }
-| expr MINUS expr { Subtract ($1,$3) }
-| expr SLASH expr { Divide ($1,$3) }
-| expr STAR expr { Multiply ($1,$3) }
-| expr OR expr { Or ($1,$3) }
-| expr AND expr { And ($1,$3) }
-| VAR ident = IDENTIFIER EQUAL e = expr { Assignment(ident, e) }
-| expr EQUAL_EQUAL expr { Equals($1, $3) }
-| expr BANG_EQUAL expr { NotEquals($1, $3) }
-| expr GREATER expr { Greater($1, $3) }
-| expr GREATER_EQUAL expr { GreaterEqual($1, $3) }
-| expr LESS expr { Less($1, $3) }
-| expr LESS_EQUAL expr { LessEqual($1, $3) }
+  { If ($startpos,$3,$6,$9) }
+| expr PLUS expr { Plus ($startpos,$1,$3) }
+| expr MINUS expr { Subtract ($startpos,$1,$3) }
+| expr SLASH expr { Divide ($startpos,$1,$3) }
+| expr STAR expr { Multiply ($startpos,$1,$3) }
+| expr OR expr { Or ($startpos,$1,$3) }
+| expr AND expr { And ($startpos,$1,$3) }
+| VAR ident = IDENTIFIER EQUAL e = expr { Assignment($startpos,ident, e) }
+| expr EQUAL_EQUAL expr { Equals($startpos,$1, $3) }
+| expr BANG_EQUAL expr { NotEquals($startpos,$1, $3) }
+| expr GREATER expr { Greater($startpos,$1, $3) }
+| expr GREATER_EQUAL expr { GreaterEqual($startpos,$1, $3) }
+| expr LESS expr { Less($startpos,$1, $3) }
+| expr LESS_EQUAL expr { LessEqual($startpos,$1, $3) }
 
 exprs:
 | (* empty *) { [] }

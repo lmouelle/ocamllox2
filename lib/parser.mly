@@ -51,6 +51,7 @@ expr:
 | expr GREATER_EQUAL expr { GreaterEqual($startpos,$1, $3) }
 | expr LESS expr { Less($startpos,$1, $3) }
 | expr LESS_EQUAL expr { LessEqual($startpos,$1, $3) }
+| LEFT_PAREN expr RIGHT_PAREN { Grouping($startpos, $2) }
 
 exprs:
 | (* empty *) { [] }

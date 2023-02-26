@@ -140,6 +140,7 @@ let rec eval (env : (string * value) list) (expr : expr) =
       { res = Boolean (eval_comparison loc lhs rhs ( > )); new_env = env }
   | GreaterEqual (loc, lhs, rhs) ->
       { res = Boolean (eval_comparison loc lhs rhs ( >= )); new_env = env }
+  | Grouping (_, expr) -> eval env expr
 
 let rec eval_program env exprs =
   match exprs with

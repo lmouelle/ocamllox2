@@ -27,3 +27,4 @@ type expr =
   | Greater of location * expr * expr
   | GreaterEqual of location * expr * expr
   | Grouping of location * expr
+  | Not of location * expr

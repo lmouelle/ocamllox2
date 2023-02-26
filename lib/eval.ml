@@ -141,6 +141,11 @@ let rec eval (env : (string * value) list) (expr : expr) =
   | GreaterEqual (loc, lhs, rhs) ->
       { res = Boolean (eval_comparison loc lhs rhs ( >= )); new_env = env }
   | Grouping (_, expr) -> eval env expr
+  | Not (loc, expr) ->
+    let eval_result = eval env expr in
+    match eval_result.res with
+    | Boolean b -> {eval_result with res = Boolean (not b)}
+    | Number _ | Nil | String _  | Variable _ -> raise @@ EvalError ("Not operator must have boolean operand", loc)
 
 let rec eval_program env exprs =
   match exprs with

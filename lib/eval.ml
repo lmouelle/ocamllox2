@@ -82,6 +82,7 @@ let rec eval (env : (string * value) list) (expr : expr) =
     | Boolean b -> { res = Boolean b; new_env = env }
     | Nil -> { res = Nil; new_env = env }
     | String s -> { res = String s; new_env = env }
+    | Variable v when String.empty = v -> raise @@ EvalError ("Empty string is not valid for var name", loc)
     | Variable v -> (
         match List.assoc_opt v env with
         | None -> raise @@ EvalError ("No var defined with name " ^ v, loc)

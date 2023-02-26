@@ -30,9 +30,12 @@ let test_eval_values _ =
   assert_raises ~msg:"Should throw when trying to eval var named empty string"
     (EvalError ("Empty string is not valid for var name", test_location))
     (fun _ -> eval [ ("", Number 0.) ] (Value (test_location, Variable "")));
-  assert_equal ~msg:"Should chase variable references until they resolve to constant"
-    { res = Nil; new_env = [("foo", Variable "bar"); ("bar", Nil)] }
-    (eval [("foo", Variable "bar"); ("bar", Nil)] (Value (test_location, Variable "foo")))
+  assert_equal
+    ~msg:"Should chase variable references until they resolve to constant"
+    { res = Nil; new_env = [ ("foo", Variable "bar"); ("bar", Nil) ] }
+    (eval
+       [ ("foo", Variable "bar"); ("bar", Nil) ]
+       (Value (test_location, Variable "foo")))
 
 let test_value_to_string _ =
   assert_equal "0." (value_to_string (Number 0.));

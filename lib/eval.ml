@@ -148,10 +148,10 @@ let rec eval (env : (string * value) list) (expr : expr) =
       | Boolean b -> { eval_result with res = Boolean (not b) }
       | Number _ | Nil | String _ | Variable _ ->
           raise @@ EvalError ("Not operator must have boolean operand", loc))
-  | Print(_, expr) ->
-    let eval_result = eval env expr in
-    value_to_string eval_result.res |> print_string;
-    eval_result
+  | Print (_, expr) ->
+      let eval_result = eval env expr in
+      value_to_string eval_result.res |> print_string;
+      eval_result
 
 let rec eval_program env exprs =
   match exprs with

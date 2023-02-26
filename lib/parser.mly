@@ -21,7 +21,7 @@
 %left PLUS MINUS 
 %left STAR SLASH
 %left AND OR
-%left EQUAL EQUAL_EQUAL BANG_EQUAL GREATER GREATER_EQUAL LESS LESS_EQUAL
+%left EQUAL EQUAL_EQUAL BANG_EQUAL GREATER GREATER_EQUAL LESS LESS_EQUAL PRINT
 %right BANG
 %%
 
@@ -52,6 +52,7 @@ expr:
 | expr LESS_EQUAL expr { LessEqual($startpos,$1, $3) }
 | LEFT_PAREN expr RIGHT_PAREN { Grouping($startpos, $2) }
 | BANG expr { Not($startpos, $2) }
+| PRINT expr { Print($startpos, $2) }
 
 exprs:
 | (* empty *) { [] }

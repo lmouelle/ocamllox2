@@ -28,3 +28,4 @@ type expr =
   | GreaterEqual of location * expr * expr
   | Grouping of location * expr
   | Not of location * expr
+  | Print of (location * expr)

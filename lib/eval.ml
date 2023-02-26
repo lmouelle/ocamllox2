@@ -82,7 +82,8 @@ let rec eval (env : (string * value) list) (expr : expr) =
     | Boolean b -> { res = Boolean b; new_env = env }
     | Nil -> { res = Nil; new_env = env }
     | String s -> { res = String s; new_env = env }
-    | Variable v when String.empty = v -> raise @@ EvalError ("Empty string is not valid for var name", loc)
+    | Variable v when String.empty = v ->
+        raise @@ EvalError ("Empty string is not valid for var name", loc)
     | Variable v -> (
         match List.assoc_opt v env with
         | None -> raise @@ EvalError ("No var defined with name " ^ v, loc)
@@ -141,11 +142,16 @@ let rec eval (env : (string * value) list) (expr : expr) =
   | GreaterEqual (loc, lhs, rhs) ->
       { res = Boolean (eval_comparison loc lhs rhs ( >= )); new_env = env }
   | Grouping (_, expr) -> eval env expr
-  | Not (loc, expr) ->
+  | Not (loc, expr) -> (
+      let eval_result = eval env expr in
+      match eval_result.res with
+      | Boolean b -> { eval_result with res = Boolean (not b) }
+      | Number _ | Nil | String _ | Variable _ ->
+          raise @@ EvalError ("Not operator must have boolean operand", loc))
+  | Print(_, expr) ->
     let eval_result = eval env expr in
-    match eval_result.res with
-    | Boolean b -> {eval_result with res = Boolean (not b)}
-    | Number _ | Nil | String _  | Variable _ -> raise @@ EvalError ("Not operator must have boolean operand", loc)
+    value_to_string eval_result.res |> print_string;
+    eval_result
 
 let rec eval_program env exprs =
   match exprs with

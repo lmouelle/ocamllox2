@@ -11,6 +11,11 @@ let rec repl env =
     print_newline ();
     repl new_env
   with
+  (* I hate how the parser error is given the most generic name possible.
+     Fully qualify the exception name to make it clear where it comes from *)
+  | Ocamllox2.Parser.Error ->
+      Printf.printf "Fatal parser error\n";
+      repl env
   | End_of_file -> exit 0
   | EvalError (msg, loc) ->
       Printf.printf "Error %s at line %d column %d\n" msg loc.pos_lnum

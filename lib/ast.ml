@@ -30,3 +30,4 @@ type expr =
   | Grouping of location * expr
   | Not of location * expr
   | Print of (location * expr)
+  | While of (location * expr * expr)

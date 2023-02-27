@@ -54,6 +54,8 @@ expr:
 | LEFT_PAREN expr RIGHT_PAREN { Grouping($startpos, $2) }
 | BANG expr { Not($startpos, $2) }
 | PRINT expr { Print($startpos, $2) }
+| WHILE LEFT_PAREN cond = expr RIGHT_PAREN LEFT_BRACE body = expr RIGHT_BRACE
+  { While($startpos, cond, body) }
 
 exprs:
 | (* empty *) { [] }

@@ -90,7 +90,18 @@ let rec eval (env : (string * value) list) (expr : expr) =
         | Some (Variable v) -> eval_value loc (Variable v)
         | Some value -> { res = value; new_env = env })
   in
-
+  let eval_while loc cond body =
+    let rec eval_while' prev_body =
+      let cond_result = eval env cond in
+      match cond_result.res with
+      | Boolean false -> prev_body
+      | Boolean true ->
+          let body_result = eval env body in
+          eval_while' body_result
+      | _ -> raise @@ EvalError ("While loop requires boolean condition", loc)
+    in
+    eval_while' { res = Nil; new_env = env }
+  in
   match expr with
   | Value (loc, v) -> eval_value loc v
   | If (loc, cond, iftrue, iffalse) -> (
@@ -159,6 +170,7 @@ let rec eval (env : (string * value) list) (expr : expr) =
           let new_env = (name, eval_result.res) :: env in
           { eval_result with new_env }
       | None -> raise @@ EvalError ("Cannot mutate unknown var " ^ name, loc))
+  | While (loc, cond, body) -> eval_while loc cond body
 
 let rec eval_program env exprs =
   match exprs with

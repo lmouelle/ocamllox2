@@ -43,7 +43,8 @@ expr:
 | expr STAR expr { Multiply ($startpos,$1,$3) }
 | expr OR expr { Or ($startpos,$1,$3) }
 | expr AND expr { And ($startpos,$1,$3) }
-| VAR ident = IDENTIFIER EQUAL e = expr { Assignment($startpos,ident, e) }
+| VAR ident = IDENTIFIER EQUAL e = expr { Assignment($startpos, ident, e) }
+| ident = IDENTIFIER EQUAL e = expr { Mutation($startpos, ident, e) }
 | expr EQUAL_EQUAL expr { Equals($startpos,$1, $3) }
 | expr BANG_EQUAL expr { NotEquals($startpos,$1, $3) }
 | expr GREATER expr { Greater($startpos,$1, $3) }

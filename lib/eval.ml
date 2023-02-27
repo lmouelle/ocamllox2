@@ -152,6 +152,13 @@ let rec eval (env : (string * value) list) (expr : expr) =
       let eval_result = eval env expr in
       value_to_string eval_result.res |> print_string;
       eval_result
+  | Mutation (loc, name, expr) -> (
+      match List.assoc_opt name env with
+      | Some _ ->
+          let eval_result = eval env expr in
+          let new_env = (name, eval_result.res) :: env in
+          { eval_result with new_env }
+      | None -> raise @@ EvalError ("Cannot mutate unknown var " ^ name, loc))
 
 let rec eval_program env exprs =
   match exprs with

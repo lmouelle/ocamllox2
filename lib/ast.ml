@@ -13,6 +13,7 @@ type expr =
   | Or of location * expr * expr
   | And of location * expr * expr
   | Assignment of location * string * expr
+  | Mutation of location * string * expr
   (* Binary operators *)
   | Plus of location * expr * expr
   | Subtract of location * expr * expr

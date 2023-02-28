@@ -96,8 +96,58 @@ let test_eval_if _ =
     (EvalError ("Invalid condition type for if expr", test_location))
     (fun _ -> eval env if_expr)
 
+let test_eval_numeric_operators _ =
+  (* Todo: Test that environment is unmodified by numeric ops
+     Test division works, addition works, subtraction works, multiplication works as expected
+     Test that doing a numeric op against a non-numeric value fails *)
+  let var_name = "foo" in
+  let env : env = [ (var_name, Number 10.) ] in
+  let addition =
+    Plus
+      ( test_location,
+        Value (test_location, Variable var_name),
+        Value (test_location, Number 5.) )
+  in
+  let subtraction =
+    Subtract
+      ( test_location,
+        Value (test_location, Variable var_name),
+        Value (test_location, Number 5.) )
+  in
+  let division =
+    Divide
+      ( test_location,
+        Value (test_location, Variable var_name),
+        Value (test_location, Number 5.) )
+  in
+  let multiplication =
+    Multiply
+      ( test_location,
+        Value (test_location, Variable var_name),
+        Value (test_location, Number 5.) )
+  in
+
+  assert_equal ~msg:"Test basic addition works" { res = Number 15.; new_env = env } (eval env addition);
+  assert_equal ~msg:"Test basic subtraction works" { res = Number 5.; new_env = env } (eval env subtraction);
+  assert_equal ~msg:"Test basic division works" { res = Number 2.; new_env = env } (eval env division);
+  assert_equal ~msg:"Test basic multiplication works" { res = Number 50.; new_env = env } (eval env multiplication);
+
+  let invalid_op =
+    Plus
+      ( test_location,
+        Value (test_location, Variable var_name),
+        Value (test_location, String "example") )
+  in
+  assert_raises
+    (EvalError ("Invalid operands for numeric binary operation", test_location))
+    (fun _ -> eval env invalid_op)
+
 let suite =
   "Eval tests"
-  >::: [ "Eval Values" >:: test_eval_values; "Eval If" >:: test_eval_if ]
+  >::: [
+         "Eval Values" >:: test_eval_values;
+         "Eval If" >:: test_eval_if;
+         "Eval numeric operators" >:: test_eval_numeric_operators;
+       ]
 
 let _ = run_test_tt_main suite

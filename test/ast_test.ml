@@ -36,18 +36,28 @@ let test_expr_if_to_string _ =
   assert_equal "If(==(1.,0.),print(\"iftrue\"),print(\"iffalse\"))"
     (expr_to_string @@ If (test_location, cond, iftrue, iffalse))
 
-let test_expr_or_to_string _ = 
-  let lhs = Equals (test_location, Value(test_location, Variable "foo"), Value(test_location, Number 1.)) in
+let test_expr_or_to_string _ =
+  let lhs =
+    Equals
+      ( test_location,
+        Value (test_location, Variable "foo"),
+        Value (test_location, Number 1.) )
+  in
   let rhs = Value (test_location, Boolean false) in
-  let item = Or(test_location, lhs, rhs) in
+  let item = Or (test_location, lhs, rhs) in
   assert_equal "Or(==($foo,1.),false)" (expr_to_string item)
-  
+
 let test_expr_and_to_string _ =
   let lhs = Value (test_location, Boolean true) in
   let multiply_lhs = Value (test_location, Number 1.) in
   let multiply_rhs = Value (test_location, Number 0.) in
-  let rhs = Equals(test_location, Multiply(test_location, multiply_lhs, multiply_rhs), Value(test_location, Number 0.)) in
-  let item = And(test_location, lhs, rhs) in
+  let rhs =
+    Equals
+      ( test_location,
+        Multiply (test_location, multiply_lhs, multiply_rhs),
+        Value (test_location, Number 0.) )
+  in
+  let item = And (test_location, lhs, rhs) in
   assert_equal "And(true,==(*(1.,0.),0.))" (expr_to_string item)
 
 let test_expr_to_string _ =
@@ -59,14 +69,13 @@ let test_expr_to_string _ =
   assert_equal
     (value_to_string @@ Variable "foo")
     (expr_to_string (Value (test_location, Variable "foo")));
-  
+
   test_expr_if_to_string ();
   test_expr_or_to_string ();
-  (* TODO: Write tests for all constructors of the Expr type. 
+  (* TODO: Write tests for all constructors of the Expr type.
      So incredibly tedious. Consider maybe replacing your *_to_string functions
      with a serialization lib instead? *)
   test_expr_and_to_string ()
-
 
 let suite =
   "To String tests"

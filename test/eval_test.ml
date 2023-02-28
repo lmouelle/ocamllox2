@@ -127,10 +127,18 @@ let test_eval_numeric_operators _ =
         Value (test_location, Number 5.) )
   in
 
-  assert_equal ~msg:"Test basic addition works" { res = Number 15.; new_env = env } (eval env addition);
-  assert_equal ~msg:"Test basic subtraction works" { res = Number 5.; new_env = env } (eval env subtraction);
-  assert_equal ~msg:"Test basic division works" { res = Number 2.; new_env = env } (eval env division);
-  assert_equal ~msg:"Test basic multiplication works" { res = Number 50.; new_env = env } (eval env multiplication);
+  assert_equal ~msg:"Test basic addition works"
+    { res = Number 15.; new_env = env }
+    (eval env addition);
+  assert_equal ~msg:"Test basic subtraction works"
+    { res = Number 5.; new_env = env }
+    (eval env subtraction);
+  assert_equal ~msg:"Test basic division works"
+    { res = Number 2.; new_env = env }
+    (eval env division);
+  assert_equal ~msg:"Test basic multiplication works"
+    { res = Number 50.; new_env = env }
+    (eval env multiplication);
 
   let invalid_op =
     Plus
@@ -142,12 +150,56 @@ let test_eval_numeric_operators _ =
     (EvalError ("Invalid operands for numeric binary operation", test_location))
     (fun _ -> eval env invalid_op)
 
+let test_eval_or _ =
+  let var_name = "foo" in
+  let env : env = [ (var_name, String "bar") ] in
+  let var_eq_correct =
+    Equals
+      ( test_location,
+        Value (test_location, Variable var_name),
+        Value (test_location, String "bar") )
+  in
+  let true_val = Value (test_location, Boolean true) in
+  let false_val = Value (test_location, Boolean false) in
+  let invalid_cond = Value (test_location, Nil) in
+  let or_val = Or (test_location, var_eq_correct, true_val) in
+  assert_equal ~msg:"Test that evals to lhs in simple case"
+    { res = Boolean true; new_env = env }
+    (eval env or_val);
+
+  let or_val = Or (test_location, false_val, true_val) in
+  assert_equal ~msg:"Test that evals to rhs in simple case"
+    { res = Boolean true; new_env = env }
+    (eval env or_val);
+
+  let or_val = Or (test_location, true_val, false_val) in
+  assert_equal ~msg:"Test that it short circuits and evals to lhs"
+    { res = Boolean true; new_env = env }
+    (eval env or_val);
+
+  let or_val = Or (test_location, false_val, false_val) in
+  assert_equal ~msg:"Test that it evals to false if both sides are false"
+    { res = Boolean false; new_env = env }
+    (eval env or_val);
+
+  let or_val = Or (test_location, true_val, invalid_cond) in
+  assert_equal
+    ~msg:"Test that it short circuts and does not eval invalid condition"
+    { res = Boolean true; new_env = env }
+    (eval env or_val);
+
+  let or_val = Or (test_location, invalid_cond, true_val) in
+  assert_raises ~msg:"Test that it throws when lhs is invalid"
+    (EvalError ("Invalid operands for boolean or", test_location))
+    (fun _ -> eval env or_val)
+
 let suite =
   "Eval tests"
   >::: [
          "Eval Values" >:: test_eval_values;
          "Eval If" >:: test_eval_if;
          "Eval numeric operators" >:: test_eval_numeric_operators;
+         "Eval Or" >:: test_eval_or;
        ]
 
 let _ = run_test_tt_main suite

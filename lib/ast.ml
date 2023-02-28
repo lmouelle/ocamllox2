@@ -31,3 +31,11 @@ type expr =
   | Not of location * expr
   | Print of (location * expr)
   | While of (location * expr * expr)
+
+
+let value_to_string = function
+| Boolean b -> string_of_bool b
+| Variable s -> "$" ^ s
+| String s -> "\"" ^ s ^ "\""
+| Number n -> string_of_float n
+| Nil -> "nil"

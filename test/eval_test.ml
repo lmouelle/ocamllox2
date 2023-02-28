@@ -97,9 +97,6 @@ let test_eval_if _ =
     (fun _ -> eval env if_expr)
 
 let test_eval_numeric_operators _ =
-  (* Todo: Test that environment is unmodified by numeric ops
-     Test division works, addition works, subtraction works, multiplication works as expected
-     Test that doing a numeric op against a non-numeric value fails *)
   let var_name = "foo" in
   let env : env = [ (var_name, Number 10.) ] in
   let addition =

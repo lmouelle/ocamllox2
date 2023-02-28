@@ -190,6 +190,43 @@ let test_eval_or _ =
     (EvalError ("Invalid operands for boolean or", test_location))
     (fun _ -> eval env or_val)
 
+let test_eval_and _ =
+  let var_name = "foo" in
+  let env : env = [ (var_name, String "bar") ] in
+  let var_eq_correct =
+    Equals
+      ( test_location,
+        Value (test_location, Variable var_name),
+        Value (test_location, String "bar") )
+  in
+  let true_val = Value (test_location, Boolean true) in
+  let false_val = Value (test_location, Boolean false) in
+  let invalid_cond = Value (test_location, Nil) in
+  let and_expr = And (test_location, var_eq_correct, true_val) in
+  assert_equal ~msg:"Test that basic boolean and works"
+    { res = Boolean true; new_env = env }
+    (eval env and_expr);
+
+  let and_expr = And (test_location, false_val, true_val) in
+  assert_equal ~msg:"Test that basic boolean evals to false"
+    { res = Boolean false; new_env = env }
+    (eval env and_expr);
+
+  let and_expr = And (test_location, true_val, false_val) in
+  assert_equal ~msg:"Test that basic boolean evals to false"
+    { res = Boolean false; new_env = env }
+    (eval env and_expr);
+
+  let and_expr = And (test_location, false_val, false_val) in
+  assert_equal ~msg:"Test that basic boolean evals to false"
+    { res = Boolean false; new_env = env }
+    (eval env and_expr);
+
+  let and_expr = And (test_location, invalid_cond, true_val) in
+  assert_raises ~msg:"Test that invalid and operand throws"
+    (EvalError ("Invalid operands for boolean and", test_location))
+    (fun _ -> eval env and_expr)
+
 let suite =
   "Eval tests"
   >::: [
@@ -197,6 +234,7 @@ let suite =
          "Eval If" >:: test_eval_if;
          "Eval numeric operators" >:: test_eval_numeric_operators;
          "Eval Or" >:: test_eval_or;
+         "Eval and" >:: test_eval_and;
        ]
 
 let _ = run_test_tt_main suite

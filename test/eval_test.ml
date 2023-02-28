@@ -37,5 +37,67 @@ let test_eval_values _ =
        [ ("foo", Variable "bar"); ("bar", Nil) ]
        (Value (test_location, Variable "foo")))
 
-let suite = "Eval tests" >::: [ "Eval Values" >:: test_eval_values ]
+let test_eval_if _ =
+  (*
+     var foo = 1
+     var result = if (foo == 1) { foo + 1 } { foo - 1 }
+     assert result == 2
+
+     var result = if (!(foo == 1)) { foo + 1 } { foo - 1 }
+     assert result == 0
+
+     assert throws {
+      if (nil) { foo + 1 } { foo - 1 }
+      if ("not-a-valid-cond") { foo + 1 } { foo - 1 }
+      if (foo + 1) { foo + 1 } { foo - 1 }
+      if (foo) { foo + 1 } { foo - 1 }
+     }
+  *)
+  let var_name = "foo" in
+  let env : env = [ (var_name, Number 1.) ] in
+  let variable_foo = Value (test_location, Variable var_name) in
+  let literal_one = Value (test_location, Number 1.) in
+  let foo_eq_one = Equals (test_location, variable_foo, literal_one) in
+  let foo_plus_one = Plus (test_location, literal_one, variable_foo) in
+  let foo_minus_one = Subtract (test_location, variable_foo, literal_one) in
+  let if_expr = If (test_location, foo_eq_one, foo_plus_one, foo_minus_one) in
+  assert_equal
+    ~msg:"Complex if should eval to true branch and leave env unchanged"
+    { res = Number 2.; new_env = env }
+    (eval env if_expr);
+
+  let foo_neq_one = Not (test_location, foo_eq_one) in
+  let if_expr = If (test_location, foo_neq_one, foo_plus_one, foo_minus_one) in
+  assert_equal
+    ~msg:"Complex if should eval to false branch and leave env unchanged"
+    { res = Number 0.; new_env = env }
+    (eval env if_expr);
+
+  let invalid_cond = Value (test_location, Nil) in
+  let if_expr = If (test_location, invalid_cond, foo_plus_one, foo_minus_one) in
+  assert_raises ~msg:"Nil value is not valid if condition"
+    (EvalError ("Invalid condition type for if expr", test_location))
+    (fun _ -> eval env if_expr);
+
+  let if_expr = If (test_location, foo_plus_one, foo_plus_one, foo_minus_one) in
+  assert_raises ~msg:"Numeric value is not valid if condition"
+    (EvalError ("Invalid condition type for if expr", test_location))
+    (fun _ -> eval env if_expr);
+
+  let invalid_cond = Value (test_location, String "not-a-valid-cond") in
+  let if_expr = If (test_location, invalid_cond, foo_plus_one, foo_minus_one) in
+  assert_raises ~msg:"String value is not valid if condition"
+    (EvalError ("Invalid condition type for if expr", test_location))
+    (fun _ -> eval env if_expr);
+
+  let invalid_cond = Value (test_location, Variable var_name) in
+  let if_expr = If (test_location, invalid_cond, foo_plus_one, foo_minus_one) in
+  assert_raises ~msg:"Variable reference is not valid if condition"
+    (EvalError ("Invalid condition type for if expr", test_location))
+    (fun _ -> eval env if_expr)
+
+let suite =
+  "Eval tests"
+  >::: [ "Eval Values" >:: test_eval_values; "Eval If" >:: test_eval_if ]
+
 let _ = run_test_tt_main suite

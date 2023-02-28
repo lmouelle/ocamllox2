@@ -129,11 +129,16 @@ let rec eval (env : env) (expr : expr) =
       | Boolean b1, Boolean b2 ->
           { res = Boolean (Bool.( && ) b1 b2); new_env = env }
       | _ -> raise @@ EvalError ("Invalid operands for boolean and", loc))
-  | Assignment (_, name, expr) ->
-      (* TODO: Should I support variable shadowing or error out if I try to define the same var twice? *)
-      let expr_result = eval env expr in
-      let new_env = (name, expr_result.res) :: env in
-      { res = expr_result.res; new_env }
+  | Assignment (loc, name, expr) -> (
+      match List.assoc_opt name env with
+      | Some _ ->
+          raise
+          @@ EvalError
+               ("Cannot shadow variables, update var or create new one", loc)
+      | None ->
+          let expr_result = eval env expr in
+          let new_env = (name, expr_result.res) :: env in
+          { res = expr_result.res; new_env })
   | Equals (loc, lhs, rhs) ->
       { res = Boolean (eval_equality loc lhs rhs); new_env = env }
   | NotEquals (loc, lhs, rhs) ->

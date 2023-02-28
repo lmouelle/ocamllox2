@@ -227,6 +227,23 @@ let test_eval_and _ =
     (EvalError ("Invalid operands for boolean and", test_location))
     (fun _ -> eval env and_expr)
 
+let test_eval_assignment _ =
+  let var_name = "foo" in
+  let var_string_value = String "bar" in
+  let env : env = [] in
+  let assign_expr =
+    Assignment (test_location, var_name, Value (test_location, var_string_value))
+  in
+  assert_equal ~msg:"Test that variable declaration works in simple case"
+    { res = var_string_value; new_env = [ (var_name, var_string_value) ] }
+    (eval env assign_expr);
+
+  let env : env = [ (var_name, var_string_value) ] in
+  assert_raises ~msg:"Test that shadowing var defs is disallowed"
+    (EvalError
+       ("Cannot shadow variables, update var or create new one", test_location))
+    (fun _ -> eval env assign_expr)
+
 let suite =
   "Eval tests"
   >::: [
@@ -235,6 +252,7 @@ let suite =
          "Eval numeric operators" >:: test_eval_numeric_operators;
          "Eval Or" >:: test_eval_or;
          "Eval and" >:: test_eval_and;
+         "Eval assignment" >:: test_eval_assignment;
        ]
 
 let _ = run_test_tt_main suite

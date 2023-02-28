@@ -37,10 +37,5 @@ let test_eval_values _ =
        [ ("foo", Variable "bar"); ("bar", Nil) ]
        (Value (test_location, Variable "foo")))
 
-let suite =
-  "Eval tests"
-  >::: [
-         "Eval Values" >:: test_eval_values;
-       ]
-
+let suite = "Eval tests" >::: [ "Eval Values" >:: test_eval_values ]
 let _ = run_test_tt_main suite

@@ -12,11 +12,5 @@ let test_value_to_string _ =
   assert_equal "false" (value_to_string (Boolean false));
   assert_equal "nil" (value_to_string Nil)
 
-  let suite =
-    "Eval tests"
-    >::: [
-           "Value to String" >:: test_value_to_string;
-         ]
-  
-  let _ = run_test_tt_main suite
-  
+let suite = "Eval tests" >::: [ "Value to String" >:: test_value_to_string ]
+let _ = run_test_tt_main suite

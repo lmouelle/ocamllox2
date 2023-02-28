@@ -2,16 +2,10 @@ open Ast
 
 exception EvalError of string * location
 
-type eval_result = { res : value; new_env : (string * value) list }
+type env = (string * value) list
+type eval_result = { res : value; new_env : env }
 
-let value_to_string = function
-  | Boolean b -> string_of_bool b
-  | Variable s -> "$" ^ s
-  | String s -> "\"" ^ s ^ "\""
-  | Number n -> string_of_float n
-  | Nil -> "nil"
-
-let rec eval (env : (string * value) list) (expr : expr) =
+let rec eval (env : env) (expr : expr) =
   let eval_numeric_operator loc lhs rhs f =
     (* TODO: this impl prevents us from using + for string concat. Do we want that? *)
     let lhs_result = eval env lhs in

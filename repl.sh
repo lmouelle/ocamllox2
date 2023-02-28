@@ -1,2 +1,2 @@
-#!/bin/sh
-rlwrap dune exec ./bin/main.exe
+#!//usr/bin/bash
+rlwrap dune exec -- ./bin/main.exe $@

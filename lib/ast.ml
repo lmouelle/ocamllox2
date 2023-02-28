@@ -48,8 +48,8 @@ let env_to_string env =
 let rec expr_to_string = function
   | Value (_, v) -> value_to_string v
   | If (_, cond, iftrue, iffalse) ->
-      "If(" ^ "," ^ expr_to_string cond ^ "," ^ expr_to_string iftrue ^ ","
-      ^ expr_to_string iffalse ^ "," ^ ")"
+      "If(" ^ expr_to_string cond ^ "," ^ expr_to_string iftrue ^ ","
+      ^ expr_to_string iffalse ^ ")"
   | Or (_, lhs, rhs) ->
       "Or(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"
   | And (_, lhs, rhs) ->

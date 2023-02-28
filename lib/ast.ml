@@ -7,6 +7,8 @@ type value =
 
 type location = Lexing.position
 
+type env = (string * value) list
+
 type expr =
   | Value of location * value
   | If of location * expr * expr * expr

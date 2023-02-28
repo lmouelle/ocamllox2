@@ -2,7 +2,6 @@ open Ast
 
 exception EvalError of string * location
 
-type env = (string * value) list
 type eval_result = { res : value; new_env : env }
 
 let rec eval (env : env) (expr : expr) =

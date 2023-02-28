@@ -33,6 +33,11 @@ value:
 | s = STRING { String s }
 | i = IDENTIFIER { Variable i }
 
+(* TODO: I put the minimum in to get this working, but TBH I expect the precedence and associativity 
+   of these to be all wrong. The grammar described in Crafting Interpreters is much more complex and well considered.
+   For now just get what I want working with this. 
+   Once I start writing E2E tests for real and running the interpreter
+   against while program files then I can revisit this and rewrite it to be optimal *)
 expr:
 | v = value { Value ($startpos, v) }
 | IF LEFT_PAREN expr RIGHT_PAREN LEFT_BRACE expr RIGHT_BRACE LEFT_BRACE expr RIGHT_BRACE

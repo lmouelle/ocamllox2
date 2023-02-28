@@ -13,5 +13,17 @@ let test_value_to_string _ =
   assert_equal "nil" (value_to_string Nil);
   assert_equal "$foo" (value_to_string (Variable "foo"))
 
-let suite = "Eval tests" >::: [ "Value to String" >:: test_value_to_string ]
+let test_env_to_string _ =
+  assert_equal "" (env_to_string []);
+  assert_equal "(foo , $bar) ; (bar , 1.)"
+    (env_to_string [ ("foo", Variable "bar"); ("bar", Number 1.) ]);
+  assert_equal "(bar , nil)" (env_to_string [ ("bar", Nil) ])
+
+let suite =
+  "To String tests"
+  >::: [
+         "Value to String" >:: test_value_to_string;
+         "Env to String" >:: test_env_to_string;
+       ]
+
 let _ = run_test_tt_main suite

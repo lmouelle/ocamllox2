@@ -86,11 +86,11 @@ let rec eval (env : env) (expr : expr) =
   in
   let eval_while loc cond body =
     let rec eval_while' prev_body =
-      let cond_result = eval env cond in
+      let cond_result = eval prev_body.new_env cond in
       match cond_result.res with
       | Boolean false -> prev_body
       | Boolean true ->
-          let body_result = eval env body in
+          let body_result = eval prev_body.new_env body in
           eval_while' body_result
       | _ -> raise @@ EvalError ("While loop requires boolean condition", loc)
     in

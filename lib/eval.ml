@@ -142,6 +142,9 @@ let rec eval (env : env) (expr : expr) =
   | Equals (loc, lhs, rhs) ->
       { res = Boolean (eval_equality loc lhs rhs); new_env = env }
   | NotEquals (loc, lhs, rhs) ->
+      (* TODO: Should the expression nil != 1 return true because they are different types,
+        or throw because they are different types? For now throw. But maybe that is something
+        I want to do on the type-checker level *)
       { res = Boolean (not @@ eval_equality loc lhs rhs); new_env = env }
   | Less (loc, lhs, rhs) ->
       { res = Boolean (eval_comparison loc lhs rhs ( < )); new_env = env }

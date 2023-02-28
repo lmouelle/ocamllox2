@@ -244,6 +244,93 @@ let test_eval_assignment _ =
        ("Cannot shadow variables, update var or create new one", test_location))
     (fun _ -> eval env assign_expr)
 
+let test_eval_equality _ =
+  let var_expr = Value (test_location, Variable "foo") in
+  let nil_expr = Value (test_location, Nil) in
+  let num_expr = Value (test_location, Number 0.) in
+  let str_expr = Value (test_location, String "bar") in
+  let bool_expr = Value (test_location, Boolean true) in
+  let env =
+    [ ("foo", Number 0.); ("quux", Variable "foo"); ("baz", Variable "quux") ]
+  in
+
+  (* Check for standard equality *)
+  let equal_expr = Equals (test_location, nil_expr, nil_expr) in
+  assert_equal ~msg:"Test equality for self works in simple case, nil"
+    { res = Boolean true; new_env = env }
+    (eval env equal_expr);
+
+  let equal_expr = Equals (test_location, bool_expr, bool_expr) in
+  assert_equal ~msg:"Test equality for self works in simple case, bool"
+    { res = Boolean true; new_env = env }
+    (eval env equal_expr);
+
+  let equal_expr = Equals (test_location, var_expr, num_expr) in
+  assert_equal ~msg:"Test equality for self works and vars are chased"
+    { res = Boolean true; new_env = env }
+    (eval env equal_expr);
+
+  let equal_expr = Equals (test_location, str_expr, str_expr) in
+  assert_equal ~msg:"Test equality for self works and strings compare correctly"
+    { res = Boolean true; new_env = env }
+    (eval env equal_expr);
+
+  (* Now check for equality is false *)
+  let equal_expr =
+    Equals (test_location, var_expr, Value (test_location, Number (-1.)))
+  in
+  assert_equal ~msg:"Test equality for self works and vars are chased"
+    { res = Boolean false; new_env = env }
+    (eval env equal_expr);
+
+  let equal_expr =
+    Equals
+      (test_location, str_expr, Value (test_location, String "never-matches"))
+  in
+  assert_equal ~msg:"Test equality for self works and strings compare correctly"
+    { res = Boolean false; new_env = env }
+    (eval env equal_expr);
+
+  (* Check for nested variable chasing *)
+  let equal_expr =
+    Equals (test_location, Value (test_location, Variable "baz"), num_expr)
+  in
+  assert_equal ~msg:"Test nested vars are chased"
+    { res = Boolean true; new_env = env }
+    (eval env equal_expr);
+
+  (* Now test that some values throw *)
+  let equal_expr = Equals (test_location, nil_expr, num_expr) in
+  assert_raises ~msg:"Test that unequal values throw"
+    (EvalError ("Cannot compare value to nil", test_location))
+    (fun _ -> eval env equal_expr);
+
+  let equal_expr = Equals (test_location, nil_expr, num_expr) in
+  assert_raises ~msg:"Test that unequal values throw"
+    (EvalError ("Cannot compare value to nil", test_location))
+    (fun _ -> eval env equal_expr);
+
+  let equal_expr = Equals (test_location, bool_expr, str_expr) in
+  assert_raises ~msg:"Test that unequal values throw"
+    (EvalError ("Cannot compare string to bool", test_location))
+    (fun _ -> eval env equal_expr);
+
+  (* Test a few inequality cases *)
+  let equal_expr =
+    NotEquals (test_location, var_expr, Value (test_location, Number (-1.)))
+  in
+  assert_equal ~msg:"Test inequality works and vars are chased"
+    { res = Boolean true; new_env = env }
+    (eval env equal_expr);
+
+  let equal_expr =
+    NotEquals
+      (test_location, str_expr, Value (test_location, String "never-matches"))
+  in
+  assert_equal ~msg:"Test equality for self works and strings compare correctly"
+    { res = Boolean true; new_env = env }
+    (eval env equal_expr)
+
 let suite =
   "Eval tests"
   >::: [
@@ -253,6 +340,7 @@ let suite =
          "Eval Or" >:: test_eval_or;
          "Eval and" >:: test_eval_and;
          "Eval assignment" >:: test_eval_assignment;
+         "Eval equality" >:: test_eval_equality;
        ]
 
 let _ = run_test_tt_main suite

@@ -331,6 +331,73 @@ let test_eval_equality _ =
     { res = Boolean true; new_env = env }
     (eval env equal_expr)
 
+let test_eval_comparison _ =
+  let var_expr = Value (test_location, Variable "foo") in
+  let nil_expr = Value (test_location, Nil) in
+  let num_expr = Value (test_location, Number 0.) in
+  let str_expr = Value (test_location, String "bar") in
+  let bool_expr = Value (test_location, Boolean true) in
+  let env =
+    [ ("foo", Number 0.); ("quux", Variable "foo"); ("baz", Variable "quux") ]
+  in
+
+  let expr =
+    Less (test_location, num_expr, Value (test_location, Variable "baz"))
+  in
+  assert_equal ~msg:"Test variable resolves to number for comparison, less"
+    { res = Boolean false; new_env = env }
+    (eval env expr);
+
+  let expr =
+    LessEqual (test_location, num_expr, Value (test_location, Variable "baz"))
+  in
+  assert_equal ~msg:"Test variable resolves to number for comparison, less eq"
+    { res = Boolean true; new_env = env }
+    (eval env expr);
+
+  let expr =
+    Greater
+      ( test_location,
+        Value (test_location, Number 10.),
+        Value (test_location, Variable "baz") )
+  in
+  assert_equal ~msg:"Test variable resolves to number for comparison, greater"
+    { res = Boolean true; new_env = env }
+    (eval env expr);
+
+  let expr =
+    GreaterEqual (test_location, var_expr, Value (test_location, Variable "baz"))
+  in
+  assert_equal
+    ~msg:"Test variable resolves to number for comparison, greater eq"
+    { res = Boolean true; new_env = env }
+    (eval env expr);
+
+  let expr =
+    GreaterEqual (test_location, nil_expr, Value (test_location, Variable "baz"))
+  in
+  assert_raises ~msg:"Test throws for invalid values for comparison"
+    (EvalError
+       ("Only numeric values are valid operands for comparison", test_location))
+    (fun _ -> eval env expr);
+
+  let expr =
+    GreaterEqual (test_location, str_expr, Value (test_location, Variable "baz"))
+  in
+  assert_raises ~msg:"Test throws for invalid values for comparison"
+    (EvalError
+       ("Only numeric values are valid operands for comparison", test_location))
+    (fun _ -> eval env expr);
+
+  let expr =
+    GreaterEqual
+      (test_location, bool_expr, Value (test_location, Variable "baz"))
+  in
+  assert_raises ~msg:"Test throws for invalid values for comparison"
+    (EvalError
+       ("Only numeric values are valid operands for comparison", test_location))
+    (fun _ -> eval env expr)
+
 let suite =
   "Eval tests"
   >::: [
@@ -341,6 +408,7 @@ let suite =
          "Eval and" >:: test_eval_and;
          "Eval assignment" >:: test_eval_assignment;
          "Eval equality" >:: test_eval_equality;
+         "Eval comparison" >:: test_eval_comparison;
        ]
 
 let _ = run_test_tt_main suite

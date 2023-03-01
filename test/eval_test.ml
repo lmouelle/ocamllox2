@@ -7,25 +7,27 @@ let test_location =
 
 let assert_eval_result_equal =
   assert_equal ~printer:(fun { res; new_env } ->
-    value_to_string res ^ "->:value in env:->" ^ env_to_string new_env)
+      value_to_string res ^ "->:value in env:->" ^ env_to_string new_env)
 
 let test_eval_values _ =
-  assert_equal ~msg:"Should return numeric constants as given"
+  assert_eval_result_equal ~msg:"Should return numeric constants as given"
     { res = Number 0.0; new_env = [] }
     (eval [] (Value (test_location, Number 0.0)));
-  assert_equal ~msg:"Should return numeric constants as given, even negative"
+  assert_eval_result_equal
+    ~msg:"Should return numeric constants as given, even negative"
     { res = Number (-1.5); new_env = [] }
     (eval [] (Value (test_location, Number (-1.5))));
-  assert_equal ~msg:"Should return the environment given"
+  assert_eval_result_equal ~msg:"Should return the environment given"
     { res = Number (-0.); new_env = [ ("foo", String "bar") ] }
     (eval [ ("foo", String "bar") ] (Value (test_location, Number (-0.))));
-  assert_equal ~msg:"Should return string constants as given"
+  assert_eval_result_equal ~msg:"Should return string constants as given"
     { res = String ""; new_env = [] }
     (eval [] (Value (test_location, String "")));
-  assert_equal ~msg:"Should return string constants as given, even empty"
+  assert_eval_result_equal
+    ~msg:"Should return string constants as given, even empty"
     { res = String "foo"; new_env = [] }
     (eval [] (Value (test_location, String "foo")));
-  assert_equal ~msg:"Should return nil as nil"
+  assert_eval_result_equal ~msg:"Should return nil as nil"
     { res = Nil; new_env = [] }
     (eval [] (Value (test_location, Nil)));
   assert_raises ~msg:"Should throw when var is undefined"
@@ -34,7 +36,7 @@ let test_eval_values _ =
   assert_raises ~msg:"Should throw when trying to eval var named empty string"
     (EvalError ("Empty string is not valid for var name", test_location))
     (fun _ -> eval [ ("", Number 0.) ] (Value (test_location, Variable "")));
-  assert_equal
+  assert_eval_result_equal
     ~msg:"Should chase variable references until they resolve to constant"
     { res = Nil; new_env = [ ("foo", Variable "bar"); ("bar", Nil) ] }
     (eval
@@ -65,14 +67,14 @@ let test_eval_if _ =
   let foo_plus_one = Plus (test_location, literal_one, variable_foo) in
   let foo_minus_one = Subtract (test_location, variable_foo, literal_one) in
   let if_expr = If (test_location, foo_eq_one, foo_plus_one, foo_minus_one) in
-  assert_equal
+  assert_eval_result_equal
     ~msg:"Complex if should eval to true branch and leave env unchanged"
     { res = Number 2.; new_env = env }
     (eval env if_expr);
 
   let foo_neq_one = Not (test_location, foo_eq_one) in
   let if_expr = If (test_location, foo_neq_one, foo_plus_one, foo_minus_one) in
-  assert_equal
+  assert_eval_result_equal
     ~msg:"Complex if should eval to false branch and leave env unchanged"
     { res = Number 0.; new_env = env }
     (eval env if_expr);
@@ -128,16 +130,16 @@ let test_eval_numeric_operators _ =
         Value (test_location, Number 5.) )
   in
 
-  assert_equal ~msg:"Test basic addition works"
+  assert_eval_result_equal ~msg:"Test basic addition works"
     { res = Number 15.; new_env = env }
     (eval env addition);
-  assert_equal ~msg:"Test basic subtraction works"
+  assert_eval_result_equal ~msg:"Test basic subtraction works"
     { res = Number 5.; new_env = env }
     (eval env subtraction);
-  assert_equal ~msg:"Test basic division works"
+  assert_eval_result_equal ~msg:"Test basic division works"
     { res = Number 2.; new_env = env }
     (eval env division);
-  assert_equal ~msg:"Test basic multiplication works"
+  assert_eval_result_equal ~msg:"Test basic multiplication works"
     { res = Number 50.; new_env = env }
     (eval env multiplication);
 
@@ -164,27 +166,28 @@ let test_eval_or _ =
   let false_val = Value (test_location, Boolean false) in
   let invalid_cond = Value (test_location, Nil) in
   let or_val = Or (test_location, var_eq_correct, true_val) in
-  assert_equal ~msg:"Test that evals to lhs in simple case"
+  assert_eval_result_equal ~msg:"Test that evals to lhs in simple case"
     { res = Boolean true; new_env = env }
     (eval env or_val);
 
   let or_val = Or (test_location, false_val, true_val) in
-  assert_equal ~msg:"Test that evals to rhs in simple case"
+  assert_eval_result_equal ~msg:"Test that evals to rhs in simple case"
     { res = Boolean true; new_env = env }
     (eval env or_val);
 
   let or_val = Or (test_location, true_val, false_val) in
-  assert_equal ~msg:"Test that it short circuits and evals to lhs"
+  assert_eval_result_equal ~msg:"Test that it short circuits and evals to lhs"
     { res = Boolean true; new_env = env }
     (eval env or_val);
 
   let or_val = Or (test_location, false_val, false_val) in
-  assert_equal ~msg:"Test that it evals to false if both sides are false"
+  assert_eval_result_equal
+    ~msg:"Test that it evals to false if both sides are false"
     { res = Boolean false; new_env = env }
     (eval env or_val);
 
   let or_val = Or (test_location, true_val, invalid_cond) in
-  assert_equal
+  assert_eval_result_equal
     ~msg:"Test that it short circuts and does not eval invalid condition"
     { res = Boolean true; new_env = env }
     (eval env or_val);
@@ -207,22 +210,22 @@ let test_eval_and _ =
   let false_val = Value (test_location, Boolean false) in
   let invalid_cond = Value (test_location, Nil) in
   let and_expr = And (test_location, var_eq_correct, true_val) in
-  assert_equal ~msg:"Test that basic boolean and works"
+  assert_eval_result_equal ~msg:"Test that basic boolean and works"
     { res = Boolean true; new_env = env }
     (eval env and_expr);
 
   let and_expr = And (test_location, false_val, true_val) in
-  assert_equal ~msg:"Test that basic boolean evals to false"
+  assert_eval_result_equal ~msg:"Test that basic boolean evals to false"
     { res = Boolean false; new_env = env }
     (eval env and_expr);
 
   let and_expr = And (test_location, true_val, false_val) in
-  assert_equal ~msg:"Test that basic boolean evals to false"
+  assert_eval_result_equal ~msg:"Test that basic boolean evals to false"
     { res = Boolean false; new_env = env }
     (eval env and_expr);
 
   let and_expr = And (test_location, false_val, false_val) in
-  assert_equal ~msg:"Test that basic boolean evals to false"
+  assert_eval_result_equal ~msg:"Test that basic boolean evals to false"
     { res = Boolean false; new_env = env }
     (eval env and_expr);
 
@@ -238,7 +241,8 @@ let test_eval_assignment _ =
   let assign_expr =
     Assignment (test_location, var_name, Value (test_location, var_string_value))
   in
-  assert_equal ~msg:"Test that variable declaration works in simple case"
+  assert_eval_result_equal
+    ~msg:"Test that variable declaration works in simple case"
     { res = var_string_value; new_env = [ (var_name, var_string_value) ] }
     (eval env assign_expr);
 
@@ -260,22 +264,26 @@ let test_eval_equality _ =
 
   (* Check for standard equality *)
   let equal_expr = Equals (test_location, nil_expr, nil_expr) in
-  assert_equal ~msg:"Test equality for self works in simple case, nil"
+  assert_eval_result_equal
+    ~msg:"Test equality for self works in simple case, nil"
     { res = Boolean true; new_env = env }
     (eval env equal_expr);
 
   let equal_expr = Equals (test_location, bool_expr, bool_expr) in
-  assert_equal ~msg:"Test equality for self works in simple case, bool"
+  assert_eval_result_equal
+    ~msg:"Test equality for self works in simple case, bool"
     { res = Boolean true; new_env = env }
     (eval env equal_expr);
 
   let equal_expr = Equals (test_location, var_expr, num_expr) in
-  assert_equal ~msg:"Test equality for self works and vars are chased"
+  assert_eval_result_equal
+    ~msg:"Test equality for self works and vars are chased"
     { res = Boolean true; new_env = env }
     (eval env equal_expr);
 
   let equal_expr = Equals (test_location, str_expr, str_expr) in
-  assert_equal ~msg:"Test equality for self works and strings compare correctly"
+  assert_eval_result_equal
+    ~msg:"Test equality for self works and strings compare correctly"
     { res = Boolean true; new_env = env }
     (eval env equal_expr);
 
@@ -283,7 +291,8 @@ let test_eval_equality _ =
   let equal_expr =
     Equals (test_location, var_expr, Value (test_location, Number (-1.)))
   in
-  assert_equal ~msg:"Test equality for self works and vars are chased"
+  assert_eval_result_equal
+    ~msg:"Test equality for self works and vars are chased"
     { res = Boolean false; new_env = env }
     (eval env equal_expr);
 
@@ -291,7 +300,8 @@ let test_eval_equality _ =
     Equals
       (test_location, str_expr, Value (test_location, String "never-matches"))
   in
-  assert_equal ~msg:"Test equality for self works and strings compare correctly"
+  assert_eval_result_equal
+    ~msg:"Test equality for self works and strings compare correctly"
     { res = Boolean false; new_env = env }
     (eval env equal_expr);
 
@@ -299,7 +309,7 @@ let test_eval_equality _ =
   let equal_expr =
     Equals (test_location, Value (test_location, Variable "baz"), num_expr)
   in
-  assert_equal ~msg:"Test nested vars are chased"
+  assert_eval_result_equal ~msg:"Test nested vars are chased"
     { res = Boolean true; new_env = env }
     (eval env equal_expr);
 
@@ -323,7 +333,7 @@ let test_eval_equality _ =
   let equal_expr =
     NotEquals (test_location, var_expr, Value (test_location, Number (-1.)))
   in
-  assert_equal ~msg:"Test inequality works and vars are chased"
+  assert_eval_result_equal ~msg:"Test inequality works and vars are chased"
     { res = Boolean true; new_env = env }
     (eval env equal_expr);
 
@@ -331,7 +341,8 @@ let test_eval_equality _ =
     NotEquals
       (test_location, str_expr, Value (test_location, String "never-matches"))
   in
-  assert_equal ~msg:"Test equality for self works and strings compare correctly"
+  assert_eval_result_equal
+    ~msg:"Test equality for self works and strings compare correctly"
     { res = Boolean true; new_env = env }
     (eval env equal_expr)
 
@@ -348,14 +359,16 @@ let test_eval_comparison _ =
   let expr =
     Less (test_location, num_expr, Value (test_location, Variable "baz"))
   in
-  assert_equal ~msg:"Test variable resolves to number for comparison, less"
+  assert_eval_result_equal
+    ~msg:"Test variable resolves to number for comparison, less"
     { res = Boolean false; new_env = env }
     (eval env expr);
 
   let expr =
     LessEqual (test_location, num_expr, Value (test_location, Variable "baz"))
   in
-  assert_equal ~msg:"Test variable resolves to number for comparison, less eq"
+  assert_eval_result_equal
+    ~msg:"Test variable resolves to number for comparison, less eq"
     { res = Boolean true; new_env = env }
     (eval env expr);
 
@@ -365,14 +378,15 @@ let test_eval_comparison _ =
         Value (test_location, Number 10.),
         Value (test_location, Variable "baz") )
   in
-  assert_equal ~msg:"Test variable resolves to number for comparison, greater"
+  assert_eval_result_equal
+    ~msg:"Test variable resolves to number for comparison, greater"
     { res = Boolean true; new_env = env }
     (eval env expr);
 
   let expr =
     GreaterEqual (test_location, var_expr, Value (test_location, Variable "baz"))
   in
-  assert_equal
+  assert_eval_result_equal
     ~msg:"Test variable resolves to number for comparison, greater eq"
     { res = Boolean true; new_env = env }
     (eval env expr);
@@ -410,12 +424,12 @@ let test_eval_not _ =
   let bool_expr = Value (test_location, Boolean true) in
   let env = [ ("foo", Boolean false) ] in
   let expr = Not (test_location, bool_expr) in
-  assert_equal ~msg:"Test basic not case"
+  assert_eval_result_equal ~msg:"Test basic not case"
     { res = Boolean false; new_env = env }
     (eval env expr);
 
   let expr = Not (test_location, var_expr) in
-  assert_equal ~msg:"Test not chases vars"
+  assert_eval_result_equal ~msg:"Test not chases vars"
     { res = Boolean true; new_env = env }
     (eval env expr);
 
@@ -443,7 +457,7 @@ let test_eval_function _ =
         Value (test_location, Variable "b") )
   in
   let expr = Function (test_location, params, body) in
-  assert_equal ~msg:"Test basic closure construction"
+  assert_eval_result_equal ~msg:"Test basic closure construction"
     { res = Closure (params, body, []); new_env = [] }
     (eval [] expr)
 

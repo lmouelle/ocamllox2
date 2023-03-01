@@ -19,7 +19,8 @@ let string = '"' [^ '"']* '"'
 
 rule token = parse
 | whitespace {token lexbuf}
-| "/*" { comment lexbuf}
+| "/*" { comment lexbuf } 
+| newline { token lexbuf }
 | "(" { LEFT_PAREN }
 | ")" { RIGHT_PAREN }
 | "{" {LEFT_BRACE}

@@ -14,7 +14,17 @@ let test_value_to_string _ =
   assert_equal "true" (value_to_string (Boolean true));
   assert_equal "false" (value_to_string (Boolean false));
   assert_equal "nil" (value_to_string Nil);
-  assert_equal "$foo" (value_to_string (Variable "foo"))
+  assert_equal "$foo" (value_to_string (Variable "foo"));
+  let closure =
+    Closure
+      ( [ "i" ],
+        Plus
+          ( test_location,
+            Value (test_location, Variable "i"),
+            Value (test_location, Number 1.) ),
+        [] )
+  in
+  assert_equal "fun(i){+($i,1.)}" (value_to_string closure)
 
 let test_env_to_string _ =
   assert_equal "" (env_to_string []);

@@ -5,6 +5,10 @@ open Ocamllox2.Ast
 let test_location =
   Lexing.{ pos_cnum = 0; pos_lnum = 0; pos_fname = "test"; pos_bol = 0 }
 
+let assert_eval_result_equal =
+  assert_equal ~printer:(fun { res; new_env } ->
+    value_to_string res ^ "->:value in env:->" ^ env_to_string new_env)
+
 let test_eval_values _ =
   assert_equal ~msg:"Should return numeric constants as given"
     { res = Number 0.0; new_env = [] }
@@ -430,13 +434,49 @@ let test_eval_not _ =
     (EvalError ("Not operator must have boolean operand", test_location))
     (fun _ -> eval env expr)
 
-let test_eval_function _ = 
-  let params = ["a"; "b"] in
-  let body = Plus(test_location, Value (test_location, Variable "a"), Value (test_location, Variable "b")) in
-  let expr = Function(test_location, params, body) in
+let test_eval_function _ =
+  let params = [ "a"; "b" ] in
+  let body =
+    Plus
+      ( test_location,
+        Value (test_location, Variable "a"),
+        Value (test_location, Variable "b") )
+  in
+  let expr = Function (test_location, params, body) in
   assert_equal ~msg:"Test basic closure construction"
-  { res = Closure (params, body, []); new_env = [] }
-  (eval [] expr)
+    { res = Closure (params, body, []); new_env = [] }
+    (eval [] expr)
+
+let test_eval_mutation _ =
+  let var_name = "foo" in
+  let new_var_value = Number 1. in
+  let env = [ (var_name, Number 0.) ] in
+  let expr =
+    Mutation (test_location, var_name, Value (test_location, new_var_value))
+  in
+  assert_eval_result_equal ~msg:"Test basic var mutation"
+    { res = new_var_value; new_env = (var_name, new_var_value) :: env }
+    (eval env expr);
+
+  let var_name = "baz" in
+  let expr =
+    Mutation (test_location, var_name, Value (test_location, Number 1.))
+  in
+  assert_raises ~msg:"Test mutation throws for unknown var"
+    (EvalError ("Cannot mutate unknown var " ^ var_name, test_location))
+    (fun _ -> eval env expr);
+
+  (* TODO: For now I assert that vars are dynamic: That I can
+     change the type of a var by assignment at any time. This may not work
+     in the long run if I want to add a type checker. *)
+  let var_name = "foo" in
+  let new_var_value = String "value" in
+  let expr =
+    Mutation (test_location, var_name, Value (test_location, new_var_value))
+  in
+  assert_eval_result_equal ~msg:"Test vars are uni-typed"
+    { res = String "value"; new_env = (var_name, new_var_value) :: env }
+    (eval env expr)
 
 let suite =
   "Eval tests"
@@ -451,6 +491,7 @@ let suite =
          "Eval comparison" >:: test_eval_comparison;
          "Eval not" >:: test_eval_not;
          "Eval function def" >:: test_eval_function;
+         "Eval var mutation" >:: test_eval_mutation;
        ]
 
 let _ = run_test_tt_main suite

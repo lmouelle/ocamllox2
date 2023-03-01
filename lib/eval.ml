@@ -18,7 +18,9 @@ let rec eval (env : env) (expr : expr) =
     | _, Nil
     | _, Variable _
     | _, String _
-    | _, Boolean _ ->
+    | _, Boolean _
+    | Closure _, _
+    | _, Closure _ ->
         raise @@ EvalError ("Invalid operands for numeric binary operation", loc)
   in
   let eval_comparison loc lhs rhs f =
@@ -65,6 +67,8 @@ let rec eval (env : env) (expr : expr) =
           raise @@ EvalError ("Cannot compare number to string", loc)
       | Boolean _, String _ | String _, Boolean _ ->
           raise @@ EvalError ("Cannot compare string to bool", loc)
+      | Closure _, _ | _, Closure _ ->
+          raise @@ EvalError ("Cannot compare closures for equality", loc)
     in
     let lhs_result = eval env lhs in
     let rhs_result = eval env rhs in
@@ -82,6 +86,7 @@ let rec eval (env : env) (expr : expr) =
         | None -> raise @@ EvalError ("No var defined with name " ^ v, loc)
         | Some (Variable v) -> eval_value loc (Variable v)
         | Some value -> { res = value; new_env = env })
+    | Closure _ as cl -> { res = cl; new_env = env }
   in
   let eval_while loc cond body =
     let rec eval_while' prev_body =
@@ -95,6 +100,18 @@ let rec eval (env : env) (expr : expr) =
     in
     eval_while' { res = Nil; new_env = env }
   in
+  let eval_invocation loc evaled_args params body closure_env =
+    let calling_env =
+      try List.combine params evaled_args
+      with Invalid_argument _ ->
+        raise
+        @@ EvalError
+             ( "Closure expected args count of "
+               ^ (List.length params |> string_of_int),
+               loc )
+    in
+    eval (calling_env @ closure_env @ env) body
+  in
   match expr with
   | Value (loc, v) -> eval_value loc v
   | If (loc, cond, iftrue, iffalse) -> (
@@ -102,7 +119,7 @@ let rec eval (env : env) (expr : expr) =
       match result.res with
       | Boolean true -> eval env iftrue
       | Boolean false -> eval env iffalse
-      | Number _ | String _ | Nil | Variable _ ->
+      | Number _ | String _ | Nil | Variable _ | Closure _ ->
           raise @@ EvalError ("Invalid condition type for if expr", loc))
   | Plus (loc, lhs, rhs) -> eval_numeric_operator loc lhs rhs Float.add
   | Multiply (loc, lhs, rhs) -> eval_numeric_operator loc lhs rhs Float.mul
@@ -111,7 +128,7 @@ let rec eval (env : env) (expr : expr) =
   | Or (loc, lhs, rhs) -> (
       let lhs_result = eval env lhs in
       match lhs_result.res with
-      | Nil | Variable _ | Number _ | String _ ->
+      | Nil | Variable _ | Number _ | String _ | Closure _ ->
           raise @@ EvalError ("Invalid operands for boolean or", loc)
       | Boolean true -> { res = Boolean true; new_env = env }
       | Boolean false -> (
@@ -119,7 +136,7 @@ let rec eval (env : env) (expr : expr) =
           match rhs_result.res with
           | Boolean true -> { res = Boolean true; new_env = env }
           | Boolean false -> { res = Boolean false; new_env = env }
-          | Nil | Variable _ | Number _ | String _ ->
+          | Nil | Variable _ | Number _ | String _ | Closure _ ->
               raise @@ EvalError ("Invalid operands for boolean or", loc)))
   | And (loc, lhs, rhs) -> (
       let rhs_result = eval env rhs in
@@ -158,7 +175,7 @@ let rec eval (env : env) (expr : expr) =
       let eval_result = eval env expr in
       match eval_result.res with
       | Boolean b -> { eval_result with res = Boolean (not b) }
-      | Number _ | Nil | String _ | Variable _ ->
+      | Number _ | Nil | String _ | Variable _ | Closure _ ->
           raise @@ EvalError ("Not operator must have boolean operand", loc))
   | Print (_, expr) ->
       let eval_result = eval env expr in
@@ -172,6 +189,18 @@ let rec eval (env : env) (expr : expr) =
           { eval_result with new_env }
       | None -> raise @@ EvalError ("Cannot mutate unknown var " ^ name, loc))
   | While (loc, cond, body) -> eval_while loc cond body
+  | Function (_, params, body) ->
+      let cl = Closure (params, body, env) in
+      { res = cl; new_env = env }
+  | Invocation (loc, name, args) -> (
+      let evaled_args =
+        List.map (eval env) args |> List.map (fun { res; _ } -> res)
+      in
+      match List.assoc_opt name env with
+      | None -> raise @@ EvalError ("No such fun " ^ name, loc)
+      | Some (Closure (params, body, closure_env)) ->
+          eval_invocation loc evaled_args params body closure_env
+      | Some _ -> raise @@ EvalError ("Cannot invoke non-function", loc))
 
 let rec eval_program env exprs =
   match exprs with

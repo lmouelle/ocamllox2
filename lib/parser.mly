@@ -61,6 +61,11 @@ expr:
 | PRINT expr { Print($startpos, $2) }
 | WHILE LEFT_PAREN cond = expr RIGHT_PAREN LEFT_BRACE body = expr RIGHT_BRACE
   { While($startpos, cond, body) }
+| ident = IDENTIFIER LEFT_PAREN args = separated_list(COMMA, expr) RIGHT_PAREN  
+  { Invocation($startpos, ident, args) }
+| FUN LEFT_PAREN params = separated_list(COMMA, IDENTIFIER) RIGHT_PAREN 
+  LEFT_BRACE body = expr RIGHT_BRACE
+  { Function($startpos, params, body) }
 
 exprs:
 | (* empty *) { [] }

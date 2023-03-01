@@ -398,6 +398,38 @@ let test_eval_comparison _ =
        ("Only numeric values are valid operands for comparison", test_location))
     (fun _ -> eval env expr)
 
+let test_eval_not _ =
+  let var_expr = Value (test_location, Variable "foo") in
+  let nil_expr = Value (test_location, Nil) in
+  let num_expr = Value (test_location, Number 0.) in
+  let str_expr = Value (test_location, String "bar") in
+  let bool_expr = Value (test_location, Boolean true) in
+  let env = [ ("foo", Boolean false) ] in
+  let expr = Not (test_location, bool_expr) in
+  assert_equal ~msg:"Test basic not case"
+    { res = Boolean false; new_env = env }
+    (eval env expr);
+
+  let expr = Not (test_location, var_expr) in
+  assert_equal ~msg:"Test not chases vars"
+    { res = Boolean true; new_env = env }
+    (eval env expr);
+
+  let expr = Not (test_location, nil_expr) in
+  assert_raises ~msg:"Test not throws on nil"
+    (EvalError ("Not operator must have boolean operand", test_location))
+    (fun _ -> eval env expr);
+
+  let expr = Not (test_location, num_expr) in
+  assert_raises ~msg:"Test not throws on num"
+    (EvalError ("Not operator must have boolean operand", test_location))
+    (fun _ -> eval env expr);
+
+  let expr = Not (test_location, str_expr) in
+  assert_raises ~msg:"Test not throws on str"
+    (EvalError ("Not operator must have boolean operand", test_location))
+    (fun _ -> eval env expr)
+
 let suite =
   "Eval tests"
   >::: [
@@ -409,6 +441,7 @@ let suite =
          "Eval assignment" >:: test_eval_assignment;
          "Eval equality" >:: test_eval_equality;
          "Eval comparison" >:: test_eval_comparison;
+         "Eval not" >:: test_eval_not;
        ]
 
 let _ = run_test_tt_main suite

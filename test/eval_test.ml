@@ -430,6 +430,14 @@ let test_eval_not _ =
     (EvalError ("Not operator must have boolean operand", test_location))
     (fun _ -> eval env expr)
 
+let test_eval_function _ = 
+  let params = ["a"; "b"] in
+  let body = Plus(test_location, Value (test_location, Variable "a"), Value (test_location, Variable "b")) in
+  let expr = Function(test_location, params, body) in
+  assert_equal ~msg:"Test basic closure construction"
+  { res = Closure (params, body, []); new_env = [] }
+  (eval [] expr)
+
 let suite =
   "Eval tests"
   >::: [
@@ -442,6 +450,7 @@ let suite =
          "Eval equality" >:: test_eval_equality;
          "Eval comparison" >:: test_eval_comparison;
          "Eval not" >:: test_eval_not;
+         "Eval function def" >:: test_eval_function;
        ]
 
 let _ = run_test_tt_main suite

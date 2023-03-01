@@ -492,6 +492,61 @@ let test_eval_mutation _ =
     { res = String "value"; new_env = (var_name, new_var_value) :: env }
     (eval env expr)
 
+let test_eval_while _ =
+  let env = [ ("foo", Number 0.) ] in
+  let cond =
+    Less
+      ( test_location,
+        Value (test_location, Variable "foo"),
+        Value (test_location, Number 3.) )
+  in
+  let body =
+    Mutation
+      ( test_location,
+        "foo",
+        Plus
+          ( test_location,
+            Value (test_location, Variable "foo"),
+            Value (test_location, Number 1.) ) )
+  in
+  let expr = While (test_location, cond, body) in
+
+  (* TODO: Right now I'm reallllly lazy about environments. I just push a new value for a variable onto
+     a stack (basically) instead of clearing exiting values. This is simple but it does make for some
+     awkward pretty-printing when I dump an environment. It also will be a problem for large programs, since
+     I never remove values from the env. Long term, replace the simple string*value association list with a
+     hashtable. *)
+  assert_eval_result_equal
+    ~msg:"Test while loops while var is less than target: 3"
+    {
+      res = Number 3.;
+      new_env =
+        [
+          ("foo", Number 3.);
+          ("foo", Number 2.);
+          ("foo", Number 1.);
+          ("foo", Number 0.);
+        ];
+    }
+    (eval env expr);
+
+  let cond = Value (test_location, Boolean false) in
+  let expr = While (test_location, cond, body) in
+  assert_eval_result_equal ~msg:"Test default of while loop is nil"
+    { res = Nil; new_env = env }
+    (eval env expr);
+
+  let badcond =
+    Plus
+      ( test_location,
+        Value (test_location, Number 0.),
+        Value (test_location, Number 0.) )
+  in
+  let badexpr = While (test_location, badcond, body) in
+  assert_raises ~msg:"Test while loops throw when given non-boolean cond"
+    (EvalError ("While loop requires boolean condition", test_location))
+    (fun _ -> eval env badexpr)
+
 let suite =
   "Eval tests"
   >::: [
@@ -506,6 +561,7 @@ let suite =
          "Eval not" >:: test_eval_not;
          "Eval function def" >:: test_eval_function;
          "Eval var mutation" >:: test_eval_mutation;
+         "Eval while loop" >:: test_eval_while;
        ]
 
 let _ = run_test_tt_main suite

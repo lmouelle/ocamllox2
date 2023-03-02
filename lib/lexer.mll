@@ -26,7 +26,6 @@ rule token = parse
 | "{" {LEFT_BRACE}
 | "}" {RIGHT_BRACE}
 | "," {COMMA}
-| "." {DOT}
 | "-" {MINUS}
 | "+" {PLUS}
 | ";" {SEMICOLON}

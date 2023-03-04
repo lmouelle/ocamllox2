@@ -6,7 +6,7 @@ type value =
   | Boolean of bool
   | String of string
   | Variable of string
-  | Closure of string list * expr * env
+  | Closure of string list * stmt * env
 
 and env = (string * value) list
 
@@ -34,7 +34,7 @@ and expr =
   (* Function invocation *)
   | Invocation of location * string * expr list
 
-type stmt =
+and stmt =
   | Print of location * expr
   | Expression of location * expr
   | Declaration of location * string * expr option
@@ -52,7 +52,7 @@ let rec value_to_string = function
   | Nil -> "nil"
   | Closure (params, body, _) ->
       (* TODO: Do we want to print env with closures? Seems really verbose... *)
-      "fun" ^ "(" ^ String.concat "," params ^ ")" ^ "{" ^ expr_to_string body
+      "fun" ^ "(" ^ String.concat "," params ^ ")" ^ "{" ^ stmt_to_string body
       ^ "}"
 
 and env_to_string env =
@@ -61,7 +61,7 @@ and env_to_string env =
   in
   List.map env_elem_to_string env |> String.concat " ; "
 
-and expr_to_string = function
+and expr_to_string : expr -> string = function
   | Value (_, v) -> value_to_string v
   | Or (_, lhs, rhs) ->
       "Or(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"

@@ -1,6 +1,6 @@
 open Ast
 
-type eval_stmt_result = {value : value; env : env}
+type eval_result = { value : value; env : env }
 
 exception EvalError of location * string
 
@@ -96,7 +96,17 @@ and eval_invocation loc env evaled_args params body closure_env =
              "Closure expected args count of "
              ^ (List.length params |> string_of_int) )
   in
-  eval_expr (calling_env @ closure_env @ env) body
+  eval_stmt (calling_env @ closure_env @ env) body
+
+and eval_while loc env cond body =
+  let rec eval_while' prev_result =
+    let cond_result = eval_expr env cond in
+    match cond_result with
+    | Boolean false -> prev_result
+    | Boolean true -> eval_while' (eval_stmt env body)
+    | _ -> raise @@ EvalError (loc, "While loop must have boolean condition")
+  in
+  eval_while' { value = Nil; env }
 
 and eval_expr env = function
   | Value (loc, v) -> eval_value loc env v
@@ -143,5 +153,42 @@ and eval_expr env = function
       match List.assoc_opt name env with
       | None -> raise @@ EvalError (loc, "No such fun " ^ name)
       | Some (Closure (params, body, closure_env)) ->
-          eval_invocation loc env evaled_args params body closure_env
+          let stmt_result =
+            eval_invocation loc env evaled_args params body closure_env
+          in
+          stmt_result.value
       | Some _ -> raise @@ EvalError (loc, "Cannot invoke non-function"))
+
+and eval_stmt env = function
+  | Print (_, expr) ->
+      let value = eval_expr env expr in
+      let result_str = value_to_string value in
+      print_string result_str;
+      { value; env }
+  | Expression (_, expr) -> { value = eval_expr env expr; env }
+  | Declaration (_, name, expr_opt) -> (
+      match expr_opt with
+      | None -> { value = Nil; env = (name, Nil) :: env }
+      | Some expr ->
+          let value = eval_expr env expr in
+          { value; env = (name, value) :: env })
+  | Assignment (_, name, expr) ->
+      let value = eval_expr env expr in
+      { value; env = (name, value) :: env }
+  | If (loc, cond, iftrue, None) -> (
+      let cond_val = eval_expr env cond in
+      match cond_val with
+      | Boolean true -> eval_stmt env iftrue
+      | Boolean false -> { value = Nil; env }
+      | _ -> raise @@ EvalError (loc, "If stmt must have boolean condition"))
+  | If (loc, cond, iftrue, Some iffalse) -> (
+      let cond_val = eval_expr env cond in
+      match cond_val with
+      | Boolean true -> eval_stmt env iftrue
+      | Boolean false -> eval_stmt env iffalse
+      | _ -> raise @@ EvalError (loc, "If stmt must have boolean condition"))
+  | Block (_, stmts) -> List.rev_map (eval_stmt env) stmts |> List.hd
+  | Function (_, name, params, body) ->
+      let value = Closure (params, body, env) in
+      { value; env = (name, value) :: env }
+  | While (loc, cond, body) -> eval_while loc env cond body

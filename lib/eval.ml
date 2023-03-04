@@ -1,5 +1,7 @@
 open Ast
 
+type eval_stmt_result = {value : value; env : env}
+
 exception EvalError of location * string
 
 (* One thing to keep in mind is that stmts can change the env, but exprs cannot.
@@ -143,5 +145,3 @@ and eval_expr env = function
       | Some (Closure (params, body, closure_env)) ->
           eval_invocation loc env evaled_args params body closure_env
       | Some _ -> raise @@ EvalError (loc, "Cannot invoke non-function"))
-  | Assignment _ -> failwith "TODO"
-

@@ -73,13 +73,9 @@ logical_and:
 logical_or:
 | b1 = logical_and OR b2 = logical_and { Or($startpos, b1, b2) }
 
-assignment:
-| ident = IDENTIFIER EQUAL e = expression { Assignment($startpos, ident, e) }
+expression:
 | e = equality { e }
 | l = logical_or { l }
-
-expression:
-| a = assignment { a }
 | LEFT_PAREN e = expression RIGHT_PAREN { e }
 
 block:
@@ -88,6 +84,7 @@ block:
 statement:
 | e = expression SEMICOLON { Expression($startpos, e) }
 | b = block { b }
+| ident = IDENTIFIER EQUAL e = expression { Assignment($startpos, ident, e) }
 | PRINT e = expression SEMICOLON { Print($startpos, e) }
 | IF LEFT_PAREN cond = expression RIGHT_PAREN body = statement { If($startpos, cond, body, None) }
 | IF LEFT_PAREN cond = expression RIGHT_PAREN iftrue = statement iffalse = statement

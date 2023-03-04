@@ -33,7 +33,6 @@ and expr =
   | Negate of location * expr
   (* Function invocation *)
   | Invocation of location * string * expr list
-  | Assignment of location * string * expr
 
 type stmt =
   | Print of location * expr
@@ -43,6 +42,7 @@ type stmt =
   | While of location * expr * stmt
   | Function of location * string * string list * stmt
   | If of location * expr * stmt * stmt option
+  | Assignment of location * string * expr
 
 let rec value_to_string = function
   | Boolean b -> string_of_bool b
@@ -93,7 +93,6 @@ and expr_to_string = function
       ^ (List.map expr_to_string args |> String.concat ",")
       ^ ")"
   | Negate (_, e) -> "-(" ^ expr_to_string e ^ ")"
-  | Assignment (_, name, e) -> "=(" ^ name ^ "," ^ expr_to_string e ^ ")"
 
 and stmt_to_string = function
   | Print (_, e) -> "print(" ^ expr_to_string e ^ ")"
@@ -113,3 +112,4 @@ and stmt_to_string = function
       in
       "if(" ^ expr_to_string cond ^ "," ^ stmt_to_string iftrue ^ ","
       ^ iffalse_str ^ ")"
+  | Assignment (_, name, e) -> "=(" ^ name ^ "," ^ expr_to_string e ^ ")"

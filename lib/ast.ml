@@ -12,11 +12,9 @@ and env = (string * value) list
 
 and expr =
   | Value of location * value
-  | If of location * expr * expr * expr
+  (* Boolean operators *)
   | Or of location * expr * expr
   | And of location * expr * expr
-  | Assignment of location * string * expr
-  | Mutation of location * string * expr
   (* Binary operators *)
   | Plus of location * expr * expr
   | Subtract of location * expr * expr
@@ -25,23 +23,26 @@ and expr =
   (* Equality *)
   | Equals of location * expr * expr
   | NotEquals of location * expr * expr
-  (* Comparison *)
+  (* Binary Comparison *)
   | Less of location * expr * expr
   | LessEqual of location * expr * expr
   | Greater of location * expr * expr
   | GreaterEqual of location * expr * expr
-  | Grouping of location * expr
+  (* Unary operation *)
   | Not of location * expr
-  | Print of location * expr
-  | While of location * expr * expr
+  | Negate of location * expr
+  (* Function invocation *)
   | Invocation of location * string * expr list
-  (* TODO: I don't like this. I do not like having both closure, the value,
-     and Function (which is basically the same as closure) but as an expression.
-     However I cannot just create a Closure from within the parser.mly. Why?
-     Because the parser has no idea of an environment and Closure needs an environment.
-     So in the parser we parse out a Function, and then within eval we construct the environment.
-     Then we construct the Closure within eval and add it to the environment. *)
-  | Function of location * string list * expr
+  | Assignment of location * string * expr
+
+type stmt =
+  | Print of location * expr
+  | Expression of location * expr
+  | Declaration of location * string * expr option
+  | Block of location * stmt list
+  | While of location * expr * stmt
+  | Function of location * string * string list * stmt
+  | If of location * expr * stmt * stmt option
 
 let rec value_to_string = function
   | Boolean b -> string_of_bool b
@@ -62,17 +63,10 @@ and env_to_string env =
 
 and expr_to_string = function
   | Value (_, v) -> value_to_string v
-  | If (_, cond, iftrue, iffalse) ->
-      "If(" ^ expr_to_string cond ^ "," ^ expr_to_string iftrue ^ ","
-      ^ expr_to_string iffalse ^ ")"
   | Or (_, lhs, rhs) ->
       "Or(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"
   | And (_, lhs, rhs) ->
       "And(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"
-  | Assignment (_, name, expr) ->
-      "Assignment(" ^ name ^ "=" ^ expr_to_string expr ^ ")"
-  | Mutation (_, name, expr) ->
-      "Mutation(" ^ name ^ "=" ^ expr_to_string expr ^ ")"
   | Plus (_, lhs, rhs) ->
       "+(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"
   | Subtract (_, lhs, rhs) ->
@@ -85,9 +79,7 @@ and expr_to_string = function
       "==(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"
   | NotEquals (_, lhs, rhs) ->
       "!=(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"
-  | Grouping (_, expr) -> "(" ^ expr_to_string expr ^ ")"
   | Not (_, expr) -> "!(" ^ expr_to_string expr ^ ")"
-  | Print (_, expr) -> "print(" ^ expr_to_string expr ^ ")"
   | Less (_, lhs, rhs) ->
       ">(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"
   | LessEqual (_, lhs, rhs) ->
@@ -96,11 +88,28 @@ and expr_to_string = function
       "<(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"
   | GreaterEqual (_, lhs, rhs) ->
       "<=(" ^ expr_to_string lhs ^ "," ^ expr_to_string rhs ^ ")"
-  | While (_, cond, body) ->
-      "while(" ^ expr_to_string cond ^ "," ^ expr_to_string body ^ ")"
-  | Invocation (_, name, args) ->
-      "Invoke(" ^ name ^ ","
+  | Invocation (_, v, args) ->
+      "Invoke(" ^ v ^ ","
       ^ (List.map expr_to_string args |> String.concat ",")
       ^ ")"
-  | Function (_, params, body) ->
-      "fun(" ^ String.concat "," params ^ "," ^ expr_to_string body ^ ")"
+  | Negate (_, e) -> "-(" ^ expr_to_string e ^ ")"
+  | Assignment (_, name, e) -> "=(" ^ name ^ "," ^ expr_to_string e ^ ")"
+
+and stmt_to_string = function
+  | Print (_, e) -> "print(" ^ expr_to_string e ^ ")"
+  | Expression (_, e) -> "(" ^ expr_to_string e ^ ")"
+  | Declaration (_, name, e) ->
+      let e_str = match e with None -> "" | Some e -> expr_to_string e in
+      "decl(" ^ name ^ "," ^ e_str ^ ")"
+  | Block (_, b) -> "{" ^ (List.map stmt_to_string b |> String.concat ";") ^ "}"
+  | While (_, cond, body) ->
+      "while(" ^ expr_to_string cond ^ "," ^ stmt_to_string body ^ ")"
+  | Function (_, name, params, body) ->
+      "fun(" ^ name ^ "," ^ String.concat "," params ^ ")" ^ "{"
+      ^ stmt_to_string body ^ "}"
+  | If (_, cond, iftrue, iffalse) ->
+      let iffalse_str =
+        match iffalse with None -> "" | Some stmt -> stmt_to_string stmt
+      in
+      "if(" ^ expr_to_string cond ^ "," ^ stmt_to_string iftrue ^ ","
+      ^ iffalse_str ^ ")"

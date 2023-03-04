@@ -10,7 +10,7 @@ let rec print_loop _ =
     Printf.printf "> ";
     let ln = read_line () in
     let prog = parse_string ln in
-    let results = List.map expr_to_string prog in
+    let results = List.map stmt_to_string prog in
     List.iter
       (fun s ->
         print_string s;
@@ -24,7 +24,7 @@ let rec print_loop _ =
       Printf.printf "Fatal parser error\n";
       print_loop ()
   | End_of_file -> exit 0
-  | EvalError (msg, loc) ->
+  | EvalError (loc, msg) ->
       Printf.printf "Error %s at line %d column %d\n" msg loc.pos_lnum
         loc.pos_cnum;
       print_loop ()
@@ -32,12 +32,7 @@ let rec print_loop _ =
 let rec repl env =
   try
     Printf.printf "> ";
-    let ln = read_line () in
-    let prog = parse_string ln in
-    let { res; new_env } = eval_program env prog in
-    value_to_string res |> print_string;
-    print_newline ();
-    repl new_env
+    failwith "TODO"
   with
   (* I hate how the parser error is given the most generic name possible.
      Fully qualify the exception name to make it clear where it comes from *)
@@ -45,7 +40,7 @@ let rec repl env =
       Printf.printf "Fatal parser error\n";
       repl env
   | End_of_file -> exit 0
-  | EvalError (msg, loc) ->
+  | EvalError (loc, msg) ->
       Printf.printf "Error %s at line %d column %d\n" msg loc.pos_lnum
         loc.pos_cnum;
       repl env
@@ -60,11 +55,7 @@ let () =
   else
     match Sys.argv.(1) with
     | "-f" | "--filename" ->
-        let filename = Sys.argv.(1) in
-        let prog = parse_file filename in
-        let { res; new_env = _ } = eval_program [] prog in
-        value_to_string res |> print_string;
-        exit 0
+        failwith "TODO"
     | "-p" | "--print-interactive" ->
         print_newline ();
         print_loop ()

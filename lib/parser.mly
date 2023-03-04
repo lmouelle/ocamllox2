@@ -15,14 +15,8 @@
 %start program
 
 %type <Ast.value> value
-%type <Ast.expr> expr
-%type <Ast.expr list> program
+%type <Ast.stmt list> program
 
-%left PLUS MINUS 
-%left STAR SLASH
-%left AND OR
-%left EQUAL EQUAL_EQUAL BANG_EQUAL GREATER GREATER_EQUAL LESS LESS_EQUAL PRINT
-%right BANG
 %%
 
 value:
@@ -33,39 +27,80 @@ value:
 | s = STRING { String s }
 | i = IDENTIFIER { Variable i }
 
-(* TODO: I put the minimum in to get this working, but TBH I expect the precedence and associativity 
-   of these to be all wrong. The grammar described in Crafting Interpreters is much more complex and well considered.
-   For now just get what I want working with this. 
-   Once I start writing E2E tests for real and running the interpreter
-   against while program files then I can revisit this and rewrite it to be optimal *)
-expr:
-| v = value { Value ($startpos, v) }
-| IF LEFT_PAREN expr RIGHT_PAREN LEFT_BRACE expr RIGHT_BRACE LEFT_BRACE expr RIGHT_BRACE
-  { If ($startpos,$3,$6,$9) }
-| expr PLUS expr { Plus ($startpos,$1,$3) }
-| expr MINUS expr { Subtract ($startpos,$1,$3) }
-| expr SLASH expr { Divide ($startpos,$1,$3) }
-| expr STAR expr { Multiply ($startpos,$1,$3) }
-| expr OR expr { Or ($startpos,$1,$3) }
-| expr AND expr { And ($startpos,$1,$3) }
-| VAR ident = IDENTIFIER EQUAL e = expr { Assignment($startpos, ident, e) }
-| ident = IDENTIFIER EQUAL e = expr { Mutation($startpos, ident, e) }
-| expr EQUAL_EQUAL expr { Equals($startpos,$1, $3) }
-| expr BANG_EQUAL expr { NotEquals($startpos,$1, $3) }
-| expr GREATER expr { Greater($startpos,$1, $3) }
-| expr GREATER_EQUAL expr { GreaterEqual($startpos,$1, $3) }
-| expr LESS expr { Less($startpos,$1, $3) }
-| expr LESS_EQUAL expr { LessEqual($startpos,$1, $3) }
-| LEFT_PAREN expr RIGHT_PAREN { Grouping($startpos, $2) }
-| BANG expr { Not($startpos, $2) }
-| PRINT expr { Print($startpos, $2) }
-| WHILE LEFT_PAREN cond = expr RIGHT_PAREN LEFT_BRACE body = expr RIGHT_BRACE
-  { While($startpos, cond, body) }
-| ident = IDENTIFIER LEFT_PAREN args = separated_list(COMMA, expr) RIGHT_PAREN  
-  { Invocation($startpos, ident, args) }
-| FUN LEFT_PAREN params = separated_list(COMMA, IDENTIFIER) RIGHT_PAREN 
-  LEFT_BRACE body = expr RIGHT_BRACE
-  { Function($startpos, params, body) }
+(* TODO: This is the case for most of my grammar rules.
+  How do i translate the following:
+  unary          → ( "!" | "-" ) unary | call ;
+  call           → primary ( "(" arguments? ")" )* ;
+  Specifically, zero or many parens containing arguments. I can easily do 1 list of arguments,
+  but I want to support something like getfunction()() where the second parans invokes the 
+  function the first pair of parens returns *)
+invocation:
+| v = value { Value($startpos, v) }
+| i = IDENTIFIER LEFT_PAREN args = separated_list(COMMA, expression) RIGHT_PAREN
+  { Invocation($startpos, i, args) }
+
+unary:
+| i = invocation { i }
+| BANG u = unary { Not($startpos, u) }
+| MINUS u = unary { Negate($startpos, u) }
+
+factor:
+| u = unary { u }
+| u1 = unary SLASH u2 = unary { Divide($startpos, u1, u2) }
+| u1 = unary STAR u2 = unary { Multiply($startpos, u1, u2) }
+
+term:
+| f = factor { f }
+| f1 = factor MINUS f2 = factor { Subtract($startpos, f1, f2) }
+| f1 = factor PLUS f2 = factor { Plus($startpos, f1, f2) }
+
+comparison:
+| t = term { t }
+| t1 = term LESS t2 = term { Less($startpos, t1, t2) }
+| t1 = term GREATER t2 = term { Greater($startpos, t1, t2) }
+| t1 = term LESS_EQUAL t2 = term { LessEqual($startpos, t1, t2) }
+| t1 = term GREATER_EQUAL t2 = term { GreaterEqual($startpos, t1, t2) }
+
+equality:
+| c = comparison { c }
+| c1 = comparison BANG_EQUAL c2 = comparison { NotEquals($startpos, c1, c2) }
+| c1 = comparison EQUAL_EQUAL c2 = comparison { Equals($startpos, c1, c2) }
+
+logical_and:
+| e1 = equality AND e2 = equality { And($startpos, e1, e2) }
+
+
+logical_or:
+| b1 = logical_and OR b2 = logical_and { Or($startpos, b1, b2) }
+
+assignment:
+| ident = IDENTIFIER EQUAL e = expression { Assignment($startpos, ident, e) }
+| e = equality { e }
+| l = logical_or { l }
+
+expression:
+| a = assignment { a }
+| LEFT_PAREN e = expression RIGHT_PAREN { e }
+
+block:
+| LEFT_BRACE decls = list(declaration) RIGHT_BRACE {  Block($startpos, decls) }
+
+statement:
+| e = expression SEMICOLON { Expression($startpos, e) }
+| b = block { b }
+| PRINT e = expression SEMICOLON { Print($startpos, e) }
+| IF LEFT_PAREN cond = expression RIGHT_PAREN body = statement { If($startpos, cond, body, None) }
+| IF LEFT_PAREN cond = expression RIGHT_PAREN iftrue = statement iffalse = statement
+  { If($startpos, cond, iftrue, Some iffalse) }
+| WHILE LEFT_PAREN cond = expression RIGHT_PAREN stmt = statement { While($startpos, cond, stmt) }
+ 
+declaration:
+| stmt = statement { stmt }
+(* Unlike jlox in the book we're going to mandate that all vars have a value on intialization *)
+| VAR ident = IDENTIFIER EQUAL e = expression SEMICOLON { Declaration($startpos, ident, Some e) }
+| VAR ident = IDENTIFIER SEMICOLON { Declaration($startpos, ident, None) }
+| FUN funname = IDENTIFIER LEFT_PAREN params = separated_list(COMMA, IDENTIFIER) RIGHT_PAREN b = block
+  { Function($startpos, funname, params, b) }
 
 program:
-| lst = separated_list(SEMICOLON, expr) EOF { lst }
+| decls = separated_list(SEMICOLON, declaration) EOF { decls }

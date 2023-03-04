@@ -18,10 +18,12 @@ let test_value_to_string _ =
   let closure =
     Closure
       ( [ "i" ],
-        Plus
+        Expression
           ( test_location,
-            Value (test_location, Variable "i"),
-            Value (test_location, Number 1.) ),
+            Plus
+              ( test_location,
+                Value (test_location, Variable "i"),
+                Value (test_location, Number 1.) ) ),
         [] )
   in
   assert_equal "fun(i){+($i,1.)}" (value_to_string closure)

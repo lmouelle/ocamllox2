@@ -4,9 +4,6 @@ type eval_result = { value : value; env : env }
 
 exception EvalError of location * string
 
-(* One thing to keep in mind is that stmts can change the env, but exprs cannot.
-   So eval stmt needs to pass env around, eval expr and eval value does not *)
-
 let rec eval_value loc env = function
   | Variable v when String.empty = v ->
       raise @@ EvalError (loc, "Empty string is not valid for var name")
@@ -14,15 +11,15 @@ let rec eval_value loc env = function
       match List.assoc_opt v env with
       | None -> raise @@ EvalError (loc, "No var defined with name " ^ v)
       | Some (Variable v) -> eval_value loc env (Variable v)
-      | Some value -> value)
-  | _ as v -> v
+      | Some value -> { value; env })
+  | _ as value -> { value; env }
 
 let rec eval_numeric_operator loc env lhs rhs f =
   (* TODO: this impl prevents us from using + for string concat. Do we want that? *)
   let lhs_result = eval_expr env lhs in
   let rhs_result = eval_expr env rhs in
-  match (lhs_result, rhs_result) with
-  | Number n1, Number n2 -> Number (f n1 n2)
+  match (lhs_result.value, rhs_result.value) with
+  | Number n1, Number n2 -> { value = Number (f n1 n2); env }
   | Nil, _
   | Variable _, _
   | String _, _
@@ -50,7 +47,7 @@ and eval_comparison loc env lhs rhs f =
   in
   let lhs_result = eval_expr env lhs in
   let rhs_result = eval_expr env rhs in
-  eval_comparison' lhs_result rhs_result f
+  eval_comparison' lhs_result.value rhs_result.value f
 
 and eval_equality loc env lhs rhs =
   let rec eval_equality' lhs_value rhs_value =
@@ -84,7 +81,7 @@ and eval_equality loc env lhs rhs =
   in
   let lhs_result = eval_expr env lhs in
   let rhs_result = eval_expr env rhs in
-  eval_equality' lhs_result rhs_result
+  eval_equality' lhs_result.value rhs_result.value
 
 and eval_invocation loc env evaled_args params body closure_env =
   let calling_env =
@@ -101,89 +98,93 @@ and eval_invocation loc env evaled_args params body closure_env =
 and eval_while loc env cond body =
   let rec eval_while' prev_result =
     let cond_result = eval_expr env cond in
-    match cond_result with
+    match cond_result.value with
     | Boolean false -> prev_result
     | Boolean true -> eval_while' (eval_stmt env body)
     | _ -> raise @@ EvalError (loc, "While loop must have boolean condition")
   in
   eval_while' { value = Nil; env }
 
-and eval_expr env = function
+and eval_expr : env -> expr -> eval_result =
+ fun env expr ->
+  match expr with
   | Value (loc, v) -> eval_value loc env v
   | Or (loc, lhs, rhs) -> (
       let lhs_result = eval_expr env lhs in
-      match lhs_result with
+      match lhs_result.value with
       | Nil | Variable _ | Number _ | String _ | Closure _ ->
           raise @@ EvalError (loc, "Invalid operands for boolean or")
-      | Boolean true -> Boolean true
+      | Boolean true -> { value = Boolean true; env }
       | Boolean false -> (
           let rhs_result = eval_expr env rhs in
-          match rhs_result with
-          | Boolean _ as b -> b
+          match rhs_result.value with
+          | Boolean _ as value -> { value; env }
           | Nil | Variable _ | Number _ | String _ | Closure _ ->
               raise @@ EvalError (loc, "Invalid operands for boolean or")))
   | And (loc, lhs, rhs) -> (
       let rhs_result = eval_expr env rhs in
       let lhs_result = eval_expr env lhs in
-      match (rhs_result, lhs_result) with
-      | Boolean b1, Boolean b2 -> Boolean (b1 && b2)
+      match (rhs_result.value, lhs_result.value) with
+      | Boolean b1, Boolean b2 -> { value = Boolean (b1 && b2); env }
       | _ -> raise @@ EvalError (loc, "Invalid operands for boolean and"))
   | Plus (loc, lhs, rhs) -> eval_numeric_operator loc env lhs rhs ( +. )
   | Subtract (loc, lhs, rhs) -> eval_numeric_operator loc env lhs rhs ( -. )
   | Multiply (loc, lhs, rhs) -> eval_numeric_operator loc env lhs rhs Float.mul
   | Divide (loc, lhs, rhs) -> eval_numeric_operator loc env lhs rhs ( /. )
-  | Equals (loc, lhs, rhs) -> Boolean (eval_equality loc env lhs rhs)
-  | NotEquals (loc, lhs, rhs) -> Boolean (not @@ eval_equality loc env lhs rhs)
-  | Less (loc, lhs, rhs) -> Boolean (eval_comparison loc env lhs rhs ( < ))
+  | Equals (loc, lhs, rhs) ->
+      { value = Boolean (eval_equality loc env lhs rhs); env }
+  | NotEquals (loc, lhs, rhs) ->
+      { value = Boolean (not @@ eval_equality loc env lhs rhs); env }
+  | Less (loc, lhs, rhs) ->
+      { value = Boolean (eval_comparison loc env lhs rhs ( < )); env }
   | LessEqual (loc, lhs, rhs) ->
-      Boolean (eval_comparison loc env lhs rhs ( <= ))
-  | Greater (loc, lhs, rhs) -> Boolean (eval_comparison loc env lhs rhs ( > ))
+      { value = Boolean (eval_comparison loc env lhs rhs ( <= )); env }
+  | Greater (loc, lhs, rhs) ->
+      { value = Boolean (eval_comparison loc env lhs rhs ( > )); env }
   | GreaterEqual (loc, lhs, rhs) ->
-      Boolean (eval_comparison loc env lhs rhs ( >= ))
+      { value = Boolean (eval_comparison loc env lhs rhs ( >= )); env }
   | Not (loc, expr) -> (
       match eval_expr env expr with
-      | Boolean b -> Boolean (not b)
+      | { value = Boolean b; _ } -> { value = Boolean (not b); env }
       | _ -> raise @@ EvalError (loc, "Not expr requires boolean operand"))
   | Negate (loc, expr) -> (
       match eval_expr env expr with
-      | Number n -> Number (Float.neg n)
+      | { value = Number n; _ } -> { value = Number (Float.neg n); env }
       | _ -> raise @@ EvalError (loc, "Negate expr requires numeric operand"))
   | Invocation (loc, name, args) -> (
-      let evaled_args = List.map (eval_expr env) args in
+      let evaled_args =
+        List.map (eval_expr env) args |> List.map (fun { value; _ } -> value)
+      in
       match List.assoc_opt name env with
       | None -> raise @@ EvalError (loc, "No such fun " ^ name)
-      | Some (Closure (params, body, closure_env)) ->
-          let stmt_result =
-            eval_invocation loc env evaled_args params body closure_env
-          in
-          stmt_result.value
+      | Some (Closure (params, body, closure_env)) -> eval_invocation loc env evaled_args params body closure_env
       | Some _ -> raise @@ EvalError (loc, "Cannot invoke non-function"))
 
 and eval_stmt env = function
   | Print (_, expr) ->
-      let value = eval_expr env expr in
-      let result_str = value_to_string value in
+      let eval_result = eval_expr env expr in
+      let result_str = value_to_string eval_result.value in
       print_string result_str;
-      { value; env }
-  | Expression (_, expr) -> { value = eval_expr env expr; env }
+      eval_result
+  | Expression (_, expr) -> eval_expr env expr
   | Declaration (_, name, expr_opt) -> (
       match expr_opt with
       | None -> { value = Nil; env = (name, Nil) :: env }
       | Some expr ->
-          let value = eval_expr env expr in
-          { value; env = (name, value) :: env })
+          let eval_result = eval_expr env expr in
+          { eval_result with env = (name, eval_result.value) :: env })
   | Assignment (_, name, expr) ->
-      let value = eval_expr env expr in
-      { value; env = (name, value) :: env }
+      let eval_result = eval_expr env expr in
+      { eval_result with env = (name, eval_result.value) :: env }
   | If (loc, cond, iftrue, None) -> (
-      let cond_val = eval_expr env cond in
-      match cond_val with
+      let cond_result = eval_expr env cond in
+      match cond_result.value with
       | Boolean true -> eval_stmt env iftrue
       | Boolean false -> { value = Nil; env }
       | _ -> raise @@ EvalError (loc, "If stmt must have boolean condition"))
   | If (loc, cond, iftrue, Some iffalse) -> (
-      let cond_val = eval_expr env cond in
-      match cond_val with
+      let cond_result = eval_expr env cond in
+      match cond_result.value with
       | Boolean true -> eval_stmt env iftrue
       | Boolean false -> eval_stmt env iffalse
       | _ -> raise @@ EvalError (loc, "If stmt must have boolean condition"))

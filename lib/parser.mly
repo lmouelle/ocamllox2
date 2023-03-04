@@ -93,7 +93,6 @@ statement:
  
 declaration:
 | stmt = statement { stmt }
-(* Unlike jlox in the book we're going to mandate that all vars have a value on intialization *)
 | VAR ident = IDENTIFIER EQUAL e = expression SEMICOLON { Declaration($startpos, ident, Some e) }
 | VAR ident = IDENTIFIER SEMICOLON { Declaration($startpos, ident, None) }
 | FUN funname = IDENTIFIER LEFT_PAREN params = separated_list(COMMA, IDENTIFIER) RIGHT_PAREN b = block

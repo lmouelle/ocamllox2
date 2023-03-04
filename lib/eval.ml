@@ -157,7 +157,8 @@ and eval_expr : env -> expr -> eval_result =
       in
       match List.assoc_opt name env with
       | None -> raise @@ EvalError (loc, "No such fun " ^ name)
-      | Some (Closure (params, body, closure_env)) -> eval_invocation loc env evaled_args params body closure_env
+      | Some (Closure (params, body, closure_env)) ->
+          eval_invocation loc env evaled_args params body closure_env
       | Some _ -> raise @@ EvalError (loc, "Cannot invoke non-function"))
 
 and eval_stmt env = function
@@ -193,3 +194,11 @@ and eval_stmt env = function
       let value = Closure (params, body, env) in
       { value; env = (name, value) :: env }
   | While (loc, cond, body) -> eval_while loc env cond body
+
+let rec eval_program env stmts =
+  match stmts with
+  | [] -> { value = Nil; env = [] }
+  | [ stmt ] -> eval_stmt env stmt
+  | first :: rest ->
+      let { env = env'; value = _ } = eval_stmt env first in
+      eval_program env' rest

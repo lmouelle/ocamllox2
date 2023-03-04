@@ -32,7 +32,11 @@ let rec print_loop _ =
 let rec repl env =
   try
     Printf.printf "> ";
-    failwith "TODO"
+    let ln = read_line () in
+    let prog = parse_string ln in
+    let {value; env = env'} = eval_program env prog in
+    value_to_string value |> print_string; print_newline ();
+    repl env'
   with
   (* I hate how the parser error is given the most generic name possible.
      Fully qualify the exception name to make it clear where it comes from *)
@@ -55,7 +59,9 @@ let () =
   else
     match Sys.argv.(1) with
     | "-f" | "--filename" ->
-        failwith "TODO"
+        let prog = parse_file Sys.argv.(2) in
+        let {env = _; value} = eval_program [] prog in
+         value_to_string value |> Printf.printf "%s\n";
     | "-p" | "--print-interactive" ->
         print_newline ();
         print_loop ()

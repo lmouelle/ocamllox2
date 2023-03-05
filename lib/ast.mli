@@ -43,3 +43,5 @@ and stmt =
   | Function of location * string * string list * stmt
   | If of location * expr * stmt * stmt option
   | Assignment of location * string * expr
+
+and program = stmt list

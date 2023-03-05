@@ -70,3 +70,5 @@ and stmt_to_string = function
       ^ iffalse_str ^ ")"
   | Assignment (_, name, e) -> "=(" ^ name ^ "," ^ expr_to_string e ^ ")"
 
+let program_to_string prog =
+  List.map stmt_to_string prog |> String.concat ","

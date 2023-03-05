@@ -6,16 +6,16 @@ let test_location =
   Lexing.{ pos_cnum = 0; pos_lnum = 0; pos_fname = "test"; pos_bol = 0 }
 
 let test_value_to_string _ =
-  assert_equal "0." (value_to_string (Number 0.));
-  assert_equal "1." (value_to_string (Number 1.));
-  assert_equal "1000.1" (value_to_string (Number 1000.1));
-  assert_equal "-0.25" (value_to_string (Number (-0.25)));
-  assert_equal "\"foo\"" (value_to_string (String "foo"));
-  assert_equal "\"\"" (value_to_string (String ""));
-  assert_equal "true" (value_to_string (Boolean true));
-  assert_equal "false" (value_to_string (Boolean false));
-  assert_equal "nil" (value_to_string Nil);
-  assert_equal "$foo" (value_to_string (Variable "foo"));
+  assert_equal ~msg:"Test zero serializes" "0." (value_to_string (Number 0.));
+  assert_equal ~msg:"Test one serializes" "1." (value_to_string (Number 1.));
+  assert_equal ~msg:"Test one thousand serializes" "1000.1" (value_to_string (Number 1000.1));
+  assert_equal ~msg:"Test negative point two five serializes" "-0.25" (value_to_string (Number (-0.25)));
+  assert_equal ~msg:"Test basic string" "\"foo\"" (value_to_string (String "foo"));
+  assert_equal ~msg:"Test empty string" "\"\"" (value_to_string (String ""));
+  assert_equal ~msg:"Test boolean true" "true" (value_to_string (Boolean true));
+  assert_equal ~msg:"Test boolean false" "false" (value_to_string (Boolean false));
+  assert_equal ~msg:"Test nil" "nil" (value_to_string Nil);
+  assert_equal ~msg:"Test var" "$foo" (value_to_string (Variable "foo"));
   let closure =
     Closure
       ( [ "i" ],
@@ -27,7 +27,7 @@ let test_value_to_string _ =
                 Value (test_location, Number 1.) ) ),
         [] )
   in
-  assert_equal "fun(i){+($i,1.)}" (value_to_string closure)
+  assert_equal ~msg:"Test closure" "fun(i){(+($i,1.))}" (value_to_string closure) ~printer:(fun s -> s)
 
 let test_env_to_string _ =
   assert_equal "" (env_to_string []);

@@ -1,6 +1,6 @@
 open Ocamllox2.Parse_utils
 open Ocamllox2.Eval
-open Ocamllox2.Ast
+open Ocamllox2.Pretty_print
 
 (* I don't like this but I wanted some environment where I could
    easily test the _to_string functions I wrote by just entering

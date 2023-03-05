@@ -4,4 +4,5 @@
 (ocamllex lexer)
 
 (library
+ (modules_without_implementation ast)
  (name ocamllox2))

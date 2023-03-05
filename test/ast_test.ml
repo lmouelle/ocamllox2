@@ -1,4 +1,5 @@
 open OUnit2
+open Ocamllox2.Pretty_print
 open Ocamllox2.Ast
 
 let test_location =

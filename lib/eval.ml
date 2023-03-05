@@ -169,12 +169,10 @@ and eval_stmt env = function
       print_string result_str;
       eval_result
   | Expression (_, expr) -> eval_expr env expr
-  | Declaration (_, name, expr_opt) -> (
-      match expr_opt with
-      | None -> { value = Nil; env = (name, Nil) :: env }
-      | Some expr ->
-          let eval_result = eval_expr env expr in
-          { eval_result with env = (name, eval_result.value) :: env })
+  | Declaration (_, name, None) -> { value = Nil; env = (name, Nil) :: env }
+  | Declaration (_, name, Some expr) ->
+      let eval_result = eval_expr env expr in
+      { eval_result with env = (name, eval_result.value) :: env }
   | Assignment (_, name, expr) ->
       let eval_result = eval_expr env expr in
       { eval_result with env = (name, eval_result.value) :: env }

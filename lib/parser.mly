@@ -15,15 +15,15 @@
 %start program
 
 %type <Ast.value> value
-%type <Ast.expression> invocation
-%type <Ast.expression> unary
-%type <Ast.expression> factor
-%type <Ast.expression> term
-%type <Ast.expression> comparison
-%type <Ast.expression> equality
-%type <Ast.expression> logical_and
-%type <Ast.expression> logical_or
-%type <Ast.expression> expression
+%type <Ast.expr> invocation
+%type <Ast.expr> unary
+%type <Ast.expr> factor
+%type <Ast.expr> term
+%type <Ast.expr> comparison
+%type <Ast.expr> equality
+%type <Ast.expr> logical_and
+%type <Ast.expr> logical_or
+%type <Ast.expr> expression
 %type <Ast.stmt> declaration
 %type <Ast.stmt> block
 %type <Ast.stmt> statement
